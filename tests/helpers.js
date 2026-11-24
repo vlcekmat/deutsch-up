@@ -1,10 +1,10 @@
 const { expect } = require('@playwright/test');
 
 async function waitForSW(page) {
-  await page.waitForFunction(async () => {
+  await expect.poll(() => page.evaluate(async () => {
     const reg = await navigator.serviceWorker.getRegistration();
     return !!(reg && reg.active && reg.active.state === 'activated' && navigator.serviceWorker.controller);
-  }, null, { timeout: 20000 });
+  }), { timeout: 20000 }).toBe(true);
 }
 
 // Answers the current item whatever its kind; returns once feedback is shown.

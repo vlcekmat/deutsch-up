@@ -52,7 +52,7 @@ test('progress survives a reload', async ({ page }) => {
   await page.goto('./');
   expect(await statDone(page)).toBe(0);
   await page.getByRole('button', { name: /Začít den 1/ }).click();
-  await answerCurrent(page);
+  await page.getByRole('button', { name: 'Nevím' }).click(); // guaranteed mistake
   await page.getByRole('button', { name: 'Další' }).click();
   await answerCurrent(page);
   await page.locator('#back').click();
@@ -63,7 +63,7 @@ test('progress survives a reload', async ({ page }) => {
   expect(Object.keys(prog.seen).length).toBe(2);
   // mistakes survive a reload too (the original app wiped them on every start)
   const nWrong = Object.keys(prog.wrong).length;
-  expect(nWrong).toBeGreaterThan(0); // "der" can't be right for every item
+  expect(nWrong).toBeGreaterThan(0);
   await expect(page.getByText(nWrong + ' úkolů čeká na opravu')).toBeVisible();
 });
 
