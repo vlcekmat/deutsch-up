@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "Deutsch Up",
+  "short_name": "Deutsch Up",
+  "description": "Cvičebnice němčiny A2 → B1: skloňování, předložky, minulé časy, čtení a psaní. Funguje i offline.",
+  "lang": "cs",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EEF1F4",
+  "theme_color": "#EEF1F4",
+  "categories": ["education"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

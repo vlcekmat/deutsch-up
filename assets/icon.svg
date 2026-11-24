@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Deutsch Up: "DU" monogram over a marker-yellow gap bar (the app's fill-in input). Rounded tile for "any" purpose icons and favicon. -->
+  <rect width="512" height="512" rx="112" fill="#14202B"/>
+  <g transform="translate(-16 -12)">
+    <g fill="none" stroke="#EEF1F4" stroke-width="44" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M140 160 V330 H190 A85 85 0 0 0 190 160 Z"/>
+      <path d="M318 160 V280 A50 50 0 0 0 418 280 V160"/>
+    </g>
+    <rect x="118" y="380" width="322" height="30" rx="8" fill="#F2B705"/>
+  </g>
+</svg>

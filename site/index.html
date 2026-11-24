@@ -1,0 +1,1612 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Deutsch Up</title>
+<meta name="description" content="Cvičebnice němčiny A2 → B1. Funguje i offline.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#EEF1F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E151C" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Deutsch Up">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preload" href="fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+:root {
+  /* Layout: one column of cards, thumb-reach buttons at the bottom of each card.
+     Palette: cool slate paper, dark ink, marker yellow for the gap to fill. */
+  --bg: #EEF1F4;
+  --surface: #FFFFFF;
+  --ink: #14202B;
+  --muted: #5A6978;
+  --line: #D5DCE3;
+  --mark: #F2B705;
+  --btn: #14202B;
+  --btn-ink: #FFFFFF;
+  --ok: #16794C;
+  --ok-bg: #E2F2E9;
+  --bad: #B3362F;
+  --bad-bg: #FBE7E5;
+  --display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E151C;
+    --surface: #16212B;
+    --ink: #E7EDF3;
+    --muted: #93A3B2;
+    --line: #2A3947;
+    --mark: #F2C230;
+    --btn: #E7EDF3;
+    --btn-ink: #0E151C;
+    --ok: #5CCB90;
+    --ok-bg: #12301F;
+    --bad: #FF8F86;
+    --bad-bg: #3A1B19;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E151C;
+  --surface: #16212B;
+  --ink: #E7EDF3;
+  --muted: #93A3B2;
+  --line: #2A3947;
+  --mark: #F2C230;
+  --btn: #E7EDF3;
+  --btn-ink: #0E151C;
+  --ok: #5CCB90;
+  --ok-bg: #12301F;
+  --bad: #FF8F86;
+  --bad-bg: #3A1B19;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 16px/1.5 var(--body);
+  -webkit-text-size-adjust: 100%;
+}
+.app {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 16px 16px 56px;
+  /* Installed on iOS with viewport-fit=cover: keep content clear of the notch / home indicator. */
+  padding: calc(16px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px))
+           calc(56px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
+  display: grid;
+  gap: 14px;
+}
+
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { font: 700 22px/1 var(--display); letter-spacing: -0.01em; }
+.brand small { font: 500 13px var(--body); color: var(--muted); margin-left: 6px; letter-spacing: 0; }
+.mode {
+  font-size: 13px; font-weight: 500; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; background: var(--surface);
+}
+
+.progress { display: flex; gap: 6px; }
+.seg { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+.seg.cur { background: var(--mark); }
+.seg.ok { background: var(--ok); }
+.seg.bad { background: var(--bad); }
+
+.banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--btn); color: var(--btn-ink); border-radius: 12px; padding: 10px 14px; font-weight: 500;
+}
+.banner button {
+  font: 600 15px var(--body); color: inherit; background: transparent; border: 1px solid currentColor;
+  border-radius: 8px; padding: 6px 12px; cursor: pointer; min-height: 36px;
+}
+
+.card {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+  padding: 20px; display: grid; gap: 16px;
+}
+.title { margin: 0; font: 700 26px/1.2 var(--display); text-wrap: balance; letter-spacing: -0.01em; }
+.card h2 { margin: 0 0 8px; font: 600 14px var(--body); color: var(--muted); text-transform: none; }
+.txt { margin: 0; white-space: pre-line; }
+.meta, .muted { margin: 0; color: var(--muted); font-size: 14px; }
+.lead { margin: 0; font-size: 17px; }
+
+.passage { border-left: 3px solid var(--mark); padding: 2px 0 2px 14px; white-space: pre-line; font-size: 16px; }
+.passage strong { display: block; margin-bottom: 4px; font-family: var(--display); }
+
+.sentence { margin: 0; font: 500 clamp(22px, 6vw, 27px)/1.7 var(--display); text-wrap: pretty; }
+.sentence.q { line-height: 1.4; }
+.cue {
+  font: 500 15px var(--body); color: var(--muted); background: var(--bg);
+  padding: 2px 10px; border-radius: 999px; white-space: nowrap; margin: 0 2px; vertical-align: 2px;
+}
+
+input.gap, input.cg {
+  font: inherit; color: var(--ink); text-align: center; outline: none;
+  background: color-mix(in srgb, var(--mark) 28%, transparent);
+  border: 0; border-bottom: 3px solid var(--mark); border-radius: 6px 6px 0 0;
+  padding: 0 6px; margin: 0 2px; min-width: 3ch; max-width: 100%;
+}
+input.gap:focus, input.cg:focus { background: color-mix(in srgb, var(--mark) 46%, transparent); }
+input.gap:focus-visible, input.cg:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+input.gap:disabled, input.cg:disabled { opacity: 1; -webkit-text-fill-color: currentColor; }
+input.ok { color: var(--ok); border-bottom-color: var(--ok); background: var(--ok-bg); }
+input.bad { color: var(--bad); border-bottom-color: var(--bad); background: var(--bad-bg); text-decoration: line-through; }
+
+.ctext { display: grid; gap: 12px; font: 400 19px/2.3 var(--body); }
+.ctext p { margin: 0; }
+.cw { white-space: nowrap; }
+.cw .pre { font-weight: 600; }
+input.cg { font: 500 19px var(--body); padding: 0 4px; }
+.fix { font-size: 15px; color: var(--ok); font-weight: 600; margin-left: 4px; }
+
+.opts { display: grid; gap: 10px; }
+.opt {
+  display: flex; gap: 12px; align-items: baseline; text-align: left; width: 100%;
+  font: 500 16px/1.4 var(--body); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; cursor: pointer; min-height: 52px;
+}
+.opt .ltr { color: var(--muted); font-weight: 600; }
+.opt:disabled { cursor: default; opacity: 1; color: var(--ink); }
+.opt.right { border-color: var(--ok); background: var(--ok-bg); }
+.opt.wrong { border-color: var(--bad); background: var(--bad-bg); }
+
+.ta {
+  width: 100%; min-height: 170px; resize: vertical; font: 400 17px/1.5 var(--body); color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+}
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font-size: 13px; font-weight: 500; background: var(--bg); border: 1px solid var(--line);
+  border-radius: 999px; padding: 2px 10px; color: var(--ink);
+}
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn {
+  font: 600 16px var(--body); min-height: 48px; padding: 0 20px; border-radius: 12px; cursor: pointer;
+  border: 1px solid transparent; background: var(--btn); color: var(--btn-ink);
+}
+.btn.primary { flex: 1 1 140px; }
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.btn:focus-visible, .opt:focus-visible, .banner button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--ink); outline-offset: 2px;
+}
+
+.slot:empty { display: none; }
+.fb { border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; }
+.fb.ok { background: var(--ok-bg); }
+.fb.bad, .fb.skip { background: var(--bad-bg); }
+.fb h3 { margin: 0; font: 700 18px var(--display); }
+.fb.ok h3 { color: var(--ok); }
+.fb.bad h3, .fb.skip h3 { color: var(--bad); }
+.fb p { margin: 0; }
+.fb .example { font-style: italic; }
+.fb .lbl { font-style: normal; color: var(--muted); font-size: 13px; font-weight: 600; margin-right: 4px; }
+.fb ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.fb .evidence { font-size: 15px; color: var(--muted); }
+.tag {
+  justify-self: start; font-size: 12px; font-weight: 600; color: var(--muted);
+  border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 2px 10px;
+}
+
+.score { display: flex; align-items: baseline; gap: 4px; font-family: var(--display); }
+.score .big { font-size: 64px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.score .of { font-size: 26px; color: var(--muted); font-weight: 500; }
+.block { display: grid; gap: 4px; }
+ul.tags, ul.wrong { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+ul.tags li { display: flex; align-items: center; gap: 10px; }
+ul.tags .cnt { color: var(--muted); font-variant-numeric: tabular-nums; }
+ul.wrong li { display: grid; gap: 4px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+ul.wrong li:last-child { border-bottom: 0; padding-bottom: 0; }
+ul.wrong s { color: var(--bad); }
+ul.wrong b { color: var(--ok); }
+.sent { color: var(--muted); font-size: 14px; }
+
+details { border-top: 1px solid var(--line); padding-top: 12px; }
+summary { cursor: pointer; font-weight: 500; color: var(--muted); }
+details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-monospace, Menlo, Consolas, monospace; }
+.err { color: var(--bad); font-size: 14px; margin: 6px 0 0; }
+
+.right { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.brand { white-space: nowrap; }
+.mode { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.back {
+  font: 600 14px var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+  border-radius: 999px; padding: 0 14px; min-height: 40px; cursor: pointer; white-space: nowrap;
+}
+.back:focus-visible, .tab:focus-visible, .row:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.stat b { display: block; font: 700 26px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 13px; color: var(--muted); }
+.tabs { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.tab {
+  position: relative; font: 600 16px var(--body); min-height: 46px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+.tab[aria-pressed="true"] { background: var(--btn); color: var(--btn-ink); border-color: var(--btn); }
+.tab.done::after { content: '✓'; position: absolute; top: 1px; right: 5px; font-size: 11px; color: var(--ok); }
+.tab[aria-pressed="true"].done::after { color: var(--mark); }
+.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; width: 100%;
+  font: 500 16px/1.35 var(--body); color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; min-height: 54px; cursor: pointer;
+}
+.row small { display: block; color: var(--muted); font-size: 13px; font-weight: 400; }
+.row .go { color: var(--muted); font-weight: 600; white-space: nowrap; font-size: 14px; }
+.row.done { border-color: var(--ok); background: var(--ok-bg); }
+.row.done .go { color: var(--ok); }
+.row:disabled { opacity: .55; cursor: default; }
+.sub { margin: 0; color: var(--muted); font-size: 14px; }
+.sub a { color: var(--ink); }
+.grp { border-top: 1px solid var(--line); padding-top: 10px; }
+.grp > summary { font: 600 17px var(--display); color: var(--ink); padding: 6px 0; }
+.grp[open] > summary { margin-bottom: 8px; }
+.grp .rows { margin-top: 8px; }
+.weak { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (prefers-reduced-motion: no-preference) {
+  .seg { transition: background-color .2s; }
+}
+
+/* translation aids */
+.w { cursor: pointer; text-decoration: underline dotted color-mix(in srgb, var(--muted) 70%, transparent); text-underline-offset: 4px; text-decoration-thickness: 1px; border-radius: 4px; }
+.w:hover, .w.on { background: color-mix(in srgb, var(--mark) 30%, transparent); }
+.pop {
+  position: fixed; z-index: 50; max-width: min(320px, calc(100vw - 24px)); padding: 8px 12px; border-radius: 10px;
+  background: var(--btn); color: var(--btn-ink); font: 500 15px/1.4 var(--body); box-shadow: 0 6px 24px rgba(0,0,0,.22);
+}
+.trline { margin: 0; color: var(--muted); font: 400 16px/1.45 var(--body); border-left: 3px solid var(--line); padding: 2px 0 2px 12px; white-space: pre-line; }
+.trline::before { content: 'Překlad: '; font-weight: 600; }
+.trline.bare::before { content: none; }
+.opt .otr { display: block; color: var(--muted); font-size: 14px; font-weight: 400; margin-top: 2px; }
+.opt > span:last-child { display: block; }
+.pas-tools { display: flex; gap: 8px; }
+.mini {
+  font: 600 13px var(--body); color: var(--muted); background: transparent; border: 1px solid var(--line);
+  border-radius: 999px; padding: 4px 12px; cursor: pointer; min-height: 32px;
+}
+.mini:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fb .trf { color: var(--ink); }
+.fb .trf .lbl { font-style: normal; }
+
+/* cheat sheet */
+.sheet { display: grid; gap: 10px; }
+.sheet h3 { margin: 6px 0 0; font: 600 15px var(--body); }
+.sheet p { margin: 0; font-size: 14px; color: var(--muted); }
+.tbl { width: 100%; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; }
+.tbl th, .tbl td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.tbl th { font-size: 13px; color: var(--muted); font-weight: 600; }
+.tbl td:first-child { color: var(--muted); white-space: nowrap; font-size: 13px; }
+.tbl b { font-weight: 600; }
+.scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">Deutsch Up<small>A2 → B1</small></div>
+    <div class="right"><div class="mode" id="mode" hidden></div><button class="back" id="back" type="button" hidden>‹ Přehled</button></div>
+  </header>
+  <div class="progress" id="progress" hidden></div>
+  <div class="banner" id="banner" hidden></div>
+  <main id="stage"></main>
+</div>
+
+<script src="bank.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var stage = document.getElementById('stage');
+  var progressEl = document.getElementById('progress');
+  var bannerEl = document.getElementById('banner');
+  var modeEl = document.getElementById('mode');
+  var backEl = document.getElementById('back');
+
+  var ex = null, baseEx = null, retryMode = false;
+  var phase = 'empty';     // empty | hub | intro | item | summary
+  var idx = 0, outcomes = [], result = null, savedState = 'none';
+  var BANK = window.BANK || null;
+  var setById = {}, itemIndex = {};
+  var session = null, hubDay = 0;
+  var LS_KEY = 'de-prog-v1';
+  var SYNC_KEY = 'de-sync-v1';
+
+  var OK_LINES = ['Přesně tak.', 'Sedí.', 'Správně.', 'Dobře, jedeme dál.'];
+
+  function h(tag, props) {
+    var el = document.createElement(tag);
+    var p = props || {};
+    for (var k in p) {
+      var v = p[k];
+      if (v === null || v === undefined || v === false) continue;
+      if (k === 'class') el.className = v;
+      else if (k === 'text') el.textContent = v;
+      else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v === true ? '' : v);
+    }
+    var kids = Array.prototype.slice.call(arguments, 2);
+    (function add(list) {
+      list.forEach(function (x) {
+        if (x === null || x === undefined || x === false) return;
+        if (Array.isArray(x)) add(x); else el.append(x);
+      });
+    })(kids);
+    return el;
+  }
+
+  function arr(v) { return Array.isArray(v) ? v : [v]; }
+  function norm(s) {
+    return String(s === null || s === undefined ? '' : s).trim().toLowerCase()
+      .replace(/ß/g, 'ss').replace(/\s+/g, ' ').replace(/[.,;:!?]+$/, '');
+  }
+  function matches(given, expected) {
+    var g = norm(given);
+    return arr(expected).some(function (e) { return norm(e) === g; });
+  }
+  function stripCue(t) { return String(t).replace(/\s*\([^)]*\)/g, ''); }
+  function cuefy(text) {
+    return String(text).split(/(\([^)]*\))/).filter(function (s) { return s !== ''; }).map(function (s) {
+      return /^\(.*\)$/.test(s) ? h('span', { class: 'cue', text: s.slice(1, -1) }) : s;
+    });
+  }
+  function plural(n) { return n === 1 ? 'úkol' : (n >= 2 && n <= 4 ? 'úkoly' : 'úkolů'); }
+
+  /* ---------- translation helpers ---------- */
+  var GL = (BANK && BANK.gloss) || {};
+  var AD = (BANK && BANK.adj) || {};
+  function gloss(w) {
+    var k = String(w).toLowerCase();
+    if (GL[k]) return GL[k];
+    if (AD[k]) return k + ' = ' + AD[k];
+    var sufs = ['en', 'em', 'er', 'es', 'e'];
+    for (var i = 0; i < sufs.length; i++) {
+      var s = sufs[i];
+      if (k.length > s.length + 2 && k.slice(-s.length) === s) {
+        var st = k.slice(0, -s.length);
+        if (AD[st]) return st + ' = ' + AD[st] + ' (koncovka -' + s + ')';
+      }
+    }
+    return null;
+  }
+  // German text -> nodes; known words become tappable
+  function deText(text) {
+    var out = [];
+    String(text).split(/([A-Za-zÄÖÜäöüßéÉ]+)/).forEach(function (part, i) {
+      if (!part) return;
+      if (i % 2 === 1) {
+        var g = gloss(part);
+        if (g) { out.push(h('span', { class: 'w', 'data-g': g, role: 'button', tabindex: '0', text: part })); return; }
+      }
+      out.push(part);
+    });
+    return out;
+  }
+  function cuefyDe(text, plain) {
+    return String(text).split(/(\([^)]*\))/).filter(function (s) { return s !== ''; }).map(function (s) {
+      if (/^\(.*\)$/.test(s)) return h('span', { class: 'cue', text: s.slice(1, -1) });
+      return plain ? s : deText(s);
+    });
+  }
+  var popEl = null, popFor = null;
+  function hidePop() {
+    if (popEl) { popEl.remove(); popEl = null; }
+    if (popFor) { popFor.classList.remove('on'); popFor = null; }
+  }
+  function showPop(el) {
+    if (popFor === el) { hidePop(); return; }
+    hidePop();
+    popFor = el; el.classList.add('on');
+    popEl = h('div', { class: 'pop', role: 'status', text: el.getAttribute('data-g') });
+    document.body.append(popEl);
+    var r = el.getBoundingClientRect(), pw = popEl.offsetWidth, ph = popEl.offsetHeight;
+    var left = Math.max(12, Math.min(window.innerWidth - pw - 12, r.left + r.width / 2 - pw / 2));
+    var top = r.bottom + 8;
+    if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 8);
+    popEl.style.left = left + 'px'; popEl.style.top = top + 'px';
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest ? e.target.closest('.w') : null;
+    if (t) { e.preventDefault(); showPop(t); } else hidePop();
+  });
+  document.addEventListener('keydown', function (e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('w')) { e.preventDefault(); showPop(e.target); }
+    if (e.key === 'Escape') hidePop();
+  });
+  window.addEventListener('scroll', hidePop, { passive: true });
+  function isVocab(it) { return it && it._g === 'slov'; }
+  // "Překlad" toggle: shows Czech line after anchor
+  function trToggle(ctx, text, onToggle) {
+    if (!text) return;
+    var line = null;
+    var b = h('button', { class: 'btn ghost', type: 'button', text: 'Překlad', 'aria-expanded': 'false' });
+    b.addEventListener('click', function () {
+      if (line) { line.remove(); line = null; b.setAttribute('aria-expanded', 'false'); if (onToggle) onToggle(false); return; }
+      line = h('p', { class: 'trline', text: text });
+      ctx.trAnchor.after(line);
+      b.setAttribute('aria-expanded', 'true');
+      if (onToggle) onToggle(true);
+    });
+    ctx.actions.append(b);
+    ctx.trLine = function () { return line; };
+  }
+  function validEx(o) {
+    return !!o && typeof o === 'object' && typeof o.id === 'string' && Array.isArray(o.items) && o.items.length > 0;
+  }
+
+  /* ---------- rendering ---------- */
+
+  function render() {
+    renderProgress();
+    stage.replaceChildren();
+    backEl.hidden = phase === 'hub' || phase === 'empty';
+    if (phase === 'hub') { modeEl.hidden = true; }
+    else if (ex) { modeEl.textContent = ex.mode || ''; modeEl.hidden = !ex.mode || !!ex.bank; }
+    if (phase === 'hub') stage.append(hubView());
+    else if (phase === 'empty') stage.append(emptyCard());
+    else if (phase === 'intro') stage.append(introCard());
+    else if (phase === 'item') stage.append(itemCard());
+    else stage.append(summaryCard());
+    if (phase === 'item') {
+      var f = stage.querySelector('input.gap, input.cg, textarea');
+      if (f) { try { f.focus(); } catch (e) { /* ignore */ } }
+    }
+  }
+
+  function renderProgress() {
+    progressEl.replaceChildren();
+    if (!ex || phase === 'empty' || phase === 'summary') { progressEl.hidden = true; return; }
+    progressEl.hidden = false;
+    ex.items.forEach(function (_, i) {
+      var o = outcomes[i];
+      var cls = 'seg';
+      if (o) cls += o.parts.length ? (o.parts.every(function (p) { return p.correct; }) ? ' ok' : ' bad') : ' ok';
+      else if (phase === 'item' && i === idx) cls += ' cur';
+      progressEl.append(h('span', { class: cls }));
+    });
+  }
+
+  function emptyCard() {
+    var msg = 'Banku cvičení se nepodařilo načíst. Zkus aplikaci znovu otevřít, nebo cvičení vlož ručně.';
+    var ta = h('textarea', { class: 'ta', rows: '6', 'aria-label': 'Cvičení ve formátu JSON', spellcheck: 'false' });
+    var err = h('p', { class: 'err', hidden: true });
+    var load = function () {
+      try {
+        var o = JSON.parse(ta.value);
+        if (!validEx(o)) throw new Error('bad');
+        loadExercise(o, { fresh: true });
+      } catch (e) {
+        err.textContent = 'Tohle není platné cvičení. Zkontroluj, že jsi zkopíroval celý JSON.';
+        err.hidden = false;
+      }
+    };
+    return h('section', { class: 'card' },
+      h('h1', { class: 'title', text: 'Zatím žádné cvičení' }),
+      h('p', { class: 'txt', text: msg }),
+      h('details', {}, h('summary', { text: 'Vložit cvičení ručně' }), ta, err,
+        h('div', { class: 'actions', style: 'margin-top:10px' },
+          h('button', { class: 'btn', type: 'button', onclick: load, text: 'Načíst' }))));
+  }
+
+  function introCard() {
+    var n = ex.items.length;
+    return h('section', { class: 'card' },
+      h('h1', { class: 'title', text: ex.title || 'Cvičení' }),
+      ex.intro ? h('p', { class: 'txt', text: ex.intro }) : null,
+      h('p', { class: 'meta', text: n + ' ' + plural(n) }),
+      h('div', { class: 'actions' },
+        h('button', { class: 'btn primary', type: 'button', text: 'Začít',
+          onclick: function () { phase = 'item'; idx = 0; render(); } })));
+  }
+
+  function passageEl(p) {
+    var title = typeof p === 'object' && p ? p.title : null;
+    var text = typeof p === 'object' && p ? p.text : String(p);
+    var tr = typeof p === 'object' && p ? p.tr : null;
+    var box = h('div', { class: 'passage' }, title ? h('strong', {}, deText(title)) : null, deText(text));
+    if (!tr) return box;
+    var line = null;
+    var b = h('button', { class: 'mini', type: 'button', text: 'Přeložit text', 'aria-expanded': 'false' });
+    b.addEventListener('click', function () {
+      if (line) { line.remove(); line = null; b.textContent = 'Přeložit text'; b.setAttribute('aria-expanded', 'false'); return; }
+      line = h('p', { class: 'trline bare', text: tr });
+      wrap.append(line);
+      b.textContent = 'Skrýt překlad'; b.setAttribute('aria-expanded', 'true');
+    });
+    var wrap = h('div', { style: 'display:grid;gap:10px' }, box, h('div', { class: 'pas-tools' }, b));
+    return wrap;
+  }
+
+  function itemCard() {
+    var it = ex.items[idx];
+    var kind = it.kind || 'fill';
+    var card = h('section', { class: 'card' });
+    var slot = h('div', { class: 'slot', 'aria-live': 'polite' });
+    var actions = h('div', { class: 'actions' });
+    var ctx = { it: it, card: card, slot: slot, actions: actions };
+    var pas = it.passage || ex.passage;
+    if (pas) card.append(passageEl(pas));
+    if (kind === 'choice') buildChoice(ctx);
+    else if (kind === 'ctest') buildCtest(ctx);
+    else if (kind === 'write') buildWrite(ctx);
+    else buildFill(ctx);
+    card.append(slot, actions);
+    return card;
+  }
+
+  /* ---------- item kinds ---------- */
+
+  function filled(it) {
+    return stripCue(String(it.prompt).replace('___', arr(it.answer)[0])).trim();
+  }
+
+  function buildFill(ctx) {
+    var it = ctx.it;
+    var first = String(arr(it.answer)[0]);
+    var pieces = String(it.prompt).split('___');
+    var left = pieces.shift();
+    var right = pieces.join('___');
+    var input = h('input', {
+      class: 'gap', type: 'text', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off',
+      spellcheck: 'false', enterkeyhint: 'done', 'aria-label': 'Doplň chybějící slovo'
+    });
+    input.style.width = Math.max(4, first.length + 2) + 'ch';
+    var plain = isVocab(it);
+    var sent = h('p', { class: 'sentence' }, cuefyDe(left, plain), input, cuefyDe(right, plain));
+    ctx.card.append(sent);
+    ctx.trAnchor = sent;
+
+    var hintEl = null;
+    var check = function () {
+      var v = input.value;
+      if (!norm(v)) { input.focus(); return; }
+      var ok = matches(v, it.answer);
+      input.disabled = true;
+      input.classList.add(ok ? 'ok' : 'bad');
+      complete(ctx, [{ given: v.trim(), expected: first, correct: ok, tag: it.tag || '', skipped: false }],
+        { label: filled(it) });
+    };
+    var skip = function () {
+      input.disabled = true;
+      input.classList.add('bad');
+      complete(ctx, [{ given: '', expected: first, correct: false, tag: it.tag || '', skipped: true }],
+        { label: filled(it), skipped: true });
+    };
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); check(); }
+    });
+    ctx.actions.append(
+      h('button', { class: 'btn primary', type: 'button', onclick: check, text: 'Zkontrolovat' }),
+      h('button', { class: 'btn ghost', type: 'button', onclick: skip, text: 'Nevím' }));
+    trToggle(ctx, it.tr);
+    if (it.hint) {
+      ctx.actions.append(h('button', { class: 'btn ghost', type: 'button', text: 'Nápověda', onclick: function () {
+        if (hintEl) return;
+        hintEl = h('p', { class: 'meta', text: it.hint });
+        ctx.slot.append(hintEl);
+        input.focus();
+      } }));
+    }
+  }
+
+  function buildChoice(ctx) {
+    var it = ctx.it;
+    var qEl = h('p', { class: 'sentence q' }, isVocab(it) ? it.q : deText(it.q));
+    ctx.card.append(qEl);
+    ctx.trAnchor = qEl;
+    var list = h('div', { class: 'opts', role: 'group' });
+    var otrs = [];
+    var btns = it.options.map(function (o, i) {
+      var otr = it.optTr && it.optTr[i] ? h('span', { class: 'otr', hidden: true, text: it.optTr[i] }) : null;
+      if (otr) otrs.push(otr);
+      var b = h('button', { class: 'opt', type: 'button' },
+        h('span', { class: 'ltr', text: String.fromCharCode(97 + i) + ')' }), h('span', {}, o, otr));
+      b.addEventListener('click', function () { done(i, false); });
+      return b;
+    });
+    btns.forEach(function (b) { list.append(b); });
+    ctx.card.append(list);
+    function done(i, skipped) {
+      otrs.forEach(function (x) { x.hidden = false; });
+      btns.forEach(function (b, j) {
+        b.disabled = true;
+        if (j === it.answer) b.classList.add('right');
+        else if (j === i) b.classList.add('wrong');
+      });
+      complete(ctx, [{
+        given: skipped ? '' : it.options[i], expected: it.options[it.answer],
+        correct: !skipped && i === it.answer, tag: it.tag || '', skipped: skipped
+      }], { label: it.q, skipped: skipped });
+    }
+    ctx.actions.append(h('button', { class: 'btn ghost', type: 'button', text: 'Nevím',
+      onclick: function () { done(-1, true); } }));
+    trToggle(ctx, it.tr, function (on) { otrs.forEach(function (x) { x.hidden = !on; }); });
+  }
+
+  function buildCtest(ctx) {
+    var it = ctx.it;
+    var gaps = [];
+    var re = /\{\{([^|}]*)\|([^|}]*)(?:\|([^|}]*))?(?:\|([^}]*))?\}\}/g;
+    var wrap = h('div', { class: 'ctext' });
+    String(it.text).split(/\n\s*\n/).forEach(function (para) {
+      var p = h('p');
+      var last = 0, m;
+      re.lastIndex = 0;
+      while ((m = re.exec(para))) {
+        if (m.index > last) p.append.apply(p, deText(para.slice(last, m.index)));
+        var pre = m[1], post = m[2];
+        var inp = h('input', {
+          class: 'cg', type: 'text', autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off',
+          spellcheck: 'false', 'aria-label': 'Doplň konec slova ' + pre
+        });
+        inp.style.width = Math.max(3, post.length + 1) + 'ch';
+        gaps.push({ pre: pre, post: post, tag: m[3] || '', note: m[4] || '', inp: inp });
+        p.append(h('span', { class: 'cw' }, h('span', { class: 'pre', text: pre }), inp));
+        last = re.lastIndex;
+      }
+      if (last < para.length) p.append.apply(p, deText(para.slice(last)));
+      wrap.append(p);
+    });
+    ctx.card.append(wrap);
+    ctx.trAnchor = wrap;
+
+    var check = function () {
+      var parts = gaps.map(function (g) {
+        var v = g.inp.value.trim();
+        var full = g.pre + g.post;
+        var ok = norm(v) !== '' && (norm(v) === norm(g.post) || norm(v) === norm(full));
+        g.inp.disabled = true;
+        g.inp.classList.add(ok ? 'ok' : 'bad');
+        if (!ok) g.inp.parentNode.append(h('span', { class: 'fix', text: '→ ' + full }));
+        var shown = v === '' ? '' : (norm(v).length > g.post.length && norm(v).indexOf(norm(g.pre)) === 0 ? v : g.pre + v);
+        return { given: shown, expected: full, correct: ok, tag: g.tag, note: g.note, skipped: v === '' };
+      });
+      complete(ctx, parts, { label: '' });
+    };
+    gaps.forEach(function (g, i) {
+      g.inp.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        if (gaps[i + 1]) gaps[i + 1].inp.focus(); else check();
+      });
+    });
+    ctx.actions.append(h('button', { class: 'btn primary', type: 'button', onclick: check, text: 'Zkontrolovat vše' }));
+    trToggle(ctx, it.tr);
+  }
+
+  function buildWrite(ctx) {
+    var it = ctx.it;
+    var pEl = h('p', { class: 'sentence q' }, deText(it.prompt));
+    ctx.card.append(pEl);
+    ctx.trAnchor = pEl;
+    if (it.words && it.words.length) {
+      ctx.card.append(h('div', { class: 'chips' }, it.words.map(function (w) { return h('span', { class: 'chip' }, deText(w)); })));
+    }
+    var ta = h('textarea', { class: 'ta', rows: '7', placeholder: it.placeholder || 'Piš německy…',
+      autocapitalize: 'sentences', spellcheck: 'false', 'aria-label': 'Tvůj text' });
+    var goal = it.minWords ? ' · cíl ' + it.minWords + '+' : '';
+    var count = h('p', { class: 'meta', text: '0 slov' + goal });
+    var words = function () { var t = ta.value.trim(); return t ? t.split(/\s+/).length : 0; };
+    ta.addEventListener('input', function () { count.textContent = words() + ' slov' + goal; });
+    ctx.card.append(ta, count);
+    ctx.actions.append(h('button', { class: 'btn primary', type: 'button', text: 'Odeslat', onclick: function () {
+      if (!ta.value.trim()) { ta.focus(); return; }
+      ta.disabled = true;
+      complete(ctx, [], { text: ta.value.trim(), label: it.prompt });
+    } }));
+    trToggle(ctx, it.tr);
+  }
+
+  /* ---------- feedback and flow ---------- */
+
+  function feedbackEl(it, parts, o) {
+    var kind = it.kind || 'fill';
+    if (kind === 'write') {
+      return h('div', { class: 'fb ok' }, h('h3', { text: 'Text je hotový.' }),
+        h('p', { text: 'Na konci kola si ho můžeš zkopírovat a nechat opravit.' }));
+    }
+    var allOk = parts.every(function (p) { return p.correct; });
+    var skipped = !!(o && o.skipped);
+    var cls = allOk ? 'ok' : (skipped ? 'skip' : 'bad');
+    var nOk = parts.filter(function (p) { return p.correct; }).length;
+    var head;
+    if (allOk) head = kind === 'ctest' ? 'Všechny mezery správně.' : OK_LINES[idx % OK_LINES.length];
+    else if (kind === 'ctest') head = 'Správně ' + nOk + ' z ' + parts.length + '.';
+    else head = skipped ? 'Nevadí, tady je řešení.' : 'Tentokrát ne, ale tady je vzorec.';
+    var box = h('div', { class: 'fb ' + cls }, h('h3', { text: head }));
+
+    if (kind === 'ctest') {
+      var wrong = parts.filter(function (p) { return !p.correct; });
+      if (wrong.length) {
+        box.append(h('ul', {}, wrong.map(function (p) {
+          return h('li', {}, h('b', { text: p.expected }),
+            p.given ? ' (napsáno: ' + p.given + ')' : ' (bez odpovědi)',
+            p.note ? ' · ' + p.note : '');
+        })));
+      }
+    } else if (!allOk) {
+      box.append(h('p', {}, 'Správně: ', h('b', { text: parts[0].expected })));
+    }
+    var body = allOk ? it.short : it.explain;
+    if (body) box.append(h('p', { class: 'txt', text: body }));
+    if (kind === 'choice' && it.evidence) {
+      box.append(h('p', { class: 'evidence' }, h('span', { class: 'lbl', text: 'Důkaz v textu' }), it.evidence));
+    }
+    if (it.tr) {
+      box.append(h('p', { class: 'trf txt' }, h('span', { class: 'lbl', text: 'Překlad' }), it.tr));
+    }
+    if (!allOk && it.example) {
+      box.append(h('p', { class: 'example' }, h('span', { class: 'lbl', text: 'Další příklad' }), it.example));
+    }
+    if (!allOk && kind !== 'ctest' && parts[0].tag) box.append(h('span', { class: 'tag', text: parts[0].tag }));
+    return box;
+  }
+
+  function complete(ctx, parts, o) {
+    var out = { n: ctx.it._n || idx + 1, kind: ctx.it.kind || 'fill', parts: parts, label: (o && o.label) || '' };
+    if (o && o.text) out.text = o.text;
+    outcomes[idx] = out;
+    track(ctx.it, parts, (o && o.label) || '');
+    ctx.actions.replaceChildren();
+    hidePop();
+    if (ctx.it.kind !== 'write' && ctx.trLine && ctx.trLine()) ctx.trLine().remove();
+    ctx.slot.replaceChildren(feedbackEl(ctx.it, parts, o));
+    var last = idx === ex.items.length - 1;
+    var next = h('button', { class: 'btn primary', type: 'button', text: last ? 'Zobrazit výsledek' : 'Další',
+      onclick: function () { if (last) finish(); else { idx += 1; render(); } } });
+    ctx.actions.append(next);
+    renderProgress();
+    try { next.focus(); } catch (e) { /* ignore */ }
+  }
+
+  function finish() {
+    var all = [];
+    outcomes.forEach(function (o) { all = all.concat(o.parts); });
+    var tags = {};
+    all.forEach(function (p) { if (!p.correct && p.tag) tags[p.tag] = (tags[p.tag] || 0) + 1; });
+    result = {
+      id: ex.id, title: ex.title || '', mode: ex.mode || '', finishedAt: new Date().toISOString(),
+      score: all.filter(function (p) { return p.correct; }).length, total: all.length, tags: tags,
+      items: outcomes.map(function (o) {
+        var r = { n: o.n, kind: o.kind, prompt: o.label, parts: o.parts };
+        if (o.text) r.text = o.text;
+        return r;
+      })
+    };
+    if (ex.bank) {
+      if (!retryMode) {
+        prog.log.push({ t: new Date().toISOString().slice(0, 16), s: ex.setId, score: result.score, total: result.total });
+        if (prog.log.length > 40) prog.log = prog.log.slice(-40);
+        if (session && session.blockKey) prog.done[session.blockKey] = dayKey();
+      }
+      touch(); syncSoon(0);
+      savedState = 'prog';
+    } else {
+      savedState = retryMode ? 'retry' : 'custom';
+    }
+    phase = 'summary';
+    render();
+  }
+
+  /* ---------- summary ---------- */
+
+  function summaryLine(pct) {
+    if (pct === 100) return 'Čisté kolo.';
+    if (pct >= 80) return 'Pěkné kolo, držíš se.';
+    if (pct >= 50) return 'Solidní základ. Pár vzorců stojí za doladění.';
+    return 'Přesně tohle se vyplatí procvičit. Vzorce níže ti pomůžou.';
+  }
+
+  function saveText() {
+    return savedState === 'prog' ? (syncCfg ? 'Postup je uložený a synchronizuje se s ostatními zařízeními.' : 'Postup je uložený v tomhle zařízení.')
+      : savedState === 'retry' ? 'Opakování se neukládá.'
+      : 'Výsledky vlastních cvičení se neukládají. Můžeš si je zkopírovat.';
+  }
+
+  function resultText(r) {
+    var lines = ['Výsledky: ' + (r.title || r.id) + ' (' + r.id + ')'];
+    if (r.total) lines.push('Skóre: ' + r.score + '/' + r.total);
+    (r.items || []).forEach(function (it) {
+      if (it.text) { lines.push(it.n + '. Text:'); lines.push(it.text); return; }
+      (it.parts || []).forEach(function (p) {
+        lines.push(it.n + ' ' + (p.correct ? '✓ ' + p.expected
+          : '✗ ' + (p.given || '—') + ' → ' + p.expected + (p.tag ? ' [' + p.tag + ']' : '')));
+      });
+    });
+    return lines.join('\n');
+  }
+
+  function retryWrong() {
+    var base = baseEx || ex;
+    var nums = {};
+    result.items.forEach(function (i) {
+      if ((i.parts || []).some(function (p) { return !p.correct; })) nums[i.n] = true;
+    });
+    var items = base.items.map(function (it, i) {
+      var c = Object.assign({}, it); c._n = i + 1; return c;
+    }).filter(function (it) { return nums[it._n]; });
+    var rex = Object.assign({}, base, { items: items, title: (base.title || 'Cvičení') + ' · chyby' });
+    baseEx = base;
+    loadExercise(rex, { retry: true });
+  }
+
+  function summaryCard() {
+    var r = result;
+    var total = r.total || 0;
+    var card = h('section', { class: 'card' });
+    if (total > 0) {
+      var pct = Math.round(100 * r.score / total);
+      card.append(
+        h('div', { class: 'score' }, h('span', { class: 'big', text: String(r.score) }), h('span', { class: 'of', text: ' / ' + total })),
+        h('p', { class: 'lead', text: summaryLine(pct) }));
+    } else {
+      card.append(h('h1', { class: 'title', text: 'Hotovo' }));
+    }
+
+    var tagKeys = Object.keys(r.tags || {}).sort(function (a, b) { return r.tags[b] - r.tags[a]; });
+    if (tagKeys.length) {
+      card.append(h('div', { class: 'block' }, h('h2', { text: 'Na co se zaměřit' }),
+        h('ul', { class: 'tags' }, tagKeys.map(function (k) {
+          return h('li', {}, h('span', { class: 'chip', text: k }), h('span', { class: 'cnt', text: '×' + r.tags[k] }));
+        }))));
+    }
+
+    var wrong = [];
+    (r.items || []).forEach(function (it) {
+      (it.parts || []).forEach(function (p) { if (!p.correct) wrong.push({ it: it, p: p }); });
+    });
+    if (wrong.length) {
+      card.append(h('div', { class: 'block' }, h('h2', { text: 'Co opravit' }),
+        h('ul', { class: 'wrong' }, wrong.map(function (w) {
+          return h('li', {},
+            h('span', {}, w.p.given ? h('s', { text: w.p.given }) : h('em', { text: 'bez odpovědi' }), ' → ', h('b', { text: w.p.expected })),
+            w.it.prompt ? h('span', { class: 'sent', text: w.it.prompt }) : null,
+            w.p.tag ? h('span', { class: 'tag', text: w.p.tag }) : null);
+        }))));
+    }
+
+    var textItems = (r.items || []).filter(function (i) { return i.text; });
+    if (textItems.length) card.append(h('p', { class: 'meta', text: 'Svůj text si zkopíruj tlačítkem Zkopírovat výsledky a nech si ho opravit.' }));
+
+    card.append(h('p', { class: 'meta', id: 'save', text: saveText() }));
+
+    var fallback = h('textarea', { class: 'ta', rows: '6', readonly: true, hidden: true, 'aria-label': 'Výsledky ke zkopírování' });
+    var copyBtn = h('button', { class: 'btn ghost', type: 'button', text: 'Zkopírovat výsledky' });
+    copyBtn.addEventListener('click', function () {
+      var t = resultText(r);
+      var show = function () { fallback.value = t; fallback.hidden = false; fallback.focus(); fallback.select(); };
+      try {
+        navigator.clipboard.writeText(t).then(function () { copyBtn.textContent = 'Zkopírováno'; }, show);
+      } catch (e) { show(); }
+    });
+
+    var actions = h('div', { class: 'actions' });
+    if (wrong.length) actions.append(h('button', { class: 'btn primary', type: 'button', text: 'Zopakovat chyby', onclick: retryWrong }));
+    if (ex.bank) {
+      var nb = session && session.blockKey ? nextBlock(session.blockKey) : null;
+      if (nb) {
+        actions.append(h('button', { class: wrong.length ? 'btn ghost' : 'btn primary', type: 'button',
+          text: 'Další: ' + nb.label, onclick: function () { startBlock(nb); } }));
+      } else if (session && session.setId && session.setId !== '__wrong') {
+        actions.append(h('button', { class: wrong.length ? 'btn ghost' : 'btn primary', type: 'button', text: 'Další kolo',
+          onclick: function () { startSession(session.setId, session.n, null); } }));
+      }
+      if (textItems.length) actions.append(copyBtn);
+      actions.append(h('button', { class: 'btn ghost', type: 'button', text: 'Přehled', onclick: goHub }));
+      card.append(actions, fallback);
+      return card;
+    }
+    if (retryMode) {
+      actions.append(h('button', { class: 'btn ghost', type: 'button', text: 'Zpět na celé cvičení',
+        onclick: function () { loadExercise(baseEx, { fresh: true }); } }));
+    } else {
+      actions.append(h('button', { class: 'btn ghost', type: 'button', text: 'Zopakovat celé',
+        onclick: function () { loadExercise(baseEx || ex, { fresh: true }); } }));
+    }
+    actions.append(copyBtn);
+    card.append(actions, fallback);
+    return card;
+  }
+
+  /* ---------- bank, progress, sessions ---------- */
+
+  function indexBank() {
+    if (!BANK) return;
+    BANK.sets.forEach(function (st) {
+      setById[st.id] = st;
+      (st.items || []).forEach(function (it) { it._g = st.group; itemIndex[it.id] = { set: st.id, it: it }; });
+    });
+  }
+  function pruneProg() {
+    if (!BANK) return;
+    Object.keys(prog.wrong).forEach(function (id) { if (!itemIndex[id]) delete prog.wrong[id]; });
+    Object.keys(prog.fixed).forEach(function (id) { if (!itemIndex[id] || prog.wrong[id]) delete prog.fixed[id]; });
+  }
+  function poolOf(st) {
+    if (st.refs) {
+      var out = [];
+      st.refs.forEach(function (r) { if (setById[r]) out = out.concat(poolOf(setById[r])); });
+      return out;
+    }
+    return st.items;
+  }
+  function shuffle(a) {
+    var r = a.slice();
+    for (var i = r.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)); var t = r[i]; r[i] = r[j]; r[j] = t;
+    }
+    return r;
+  }
+  function pad2(n) { return n < 10 ? '0' + n : String(n); }
+  function dayKey(d) {
+    d = d || new Date();
+    return 'd' + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate());
+  }
+
+  function emptyProg() {
+    // wrong[id] / fixed[id] hold the time of the last wrong / correct answer, so merges know which is newer.
+    // reset = time of the last "Smazat postup"; a newer reset on any device wins over older data.
+    // dev[deviceId] = that device's own counters { seen: {id: n}, days: {day: [n, ok]}, tags: {tag: [ok, bad]} };
+    // seen / days / tagList are their sums, so devices practising on the same day add up instead of overwriting.
+    return { v: 1, updated: 0, reset: 0, seen: {}, wrong: {}, fixed: {}, tagList: [], days: {}, done: {}, log: [], recent: [], dev: {} };
+  }
+  var DEVICE = (function () {
+    var id = null;
+    try { id = localStorage.getItem('de-device-v1'); } catch (e) { /* ignore */ }
+    if (!id) {
+      id = 'd' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+      try { localStorage.setItem('de-device-v1', id); } catch (e) { /* ignore */ }
+    }
+    return id;
+  })();
+  // Progress saved before per-device counters existed: file it under one stable pseudo-device.
+  function withDev(p) {
+    if (!p.dev || typeof p.dev !== 'object' || Array.isArray(p.dev)) p.dev = {};
+    var has = Object.keys(p.seen).length || Object.keys(p.days).length || p.tagList.length;
+    if (has && !Object.keys(p.dev).length) {
+      var d = { seen: Object.assign({}, p.seen), days: {}, tags: {} };
+      Object.keys(p.days).forEach(function (k) { d.days[k] = [p.days[k].n || 0, p.days[k].ok || 0]; });
+      p.tagList.forEach(function (r) { d.tags[r.t] = [r.ok || 0, r.bad || 0]; });
+      p.dev['L' + (p.updated || 0)] = d;
+    }
+    return p;
+  }
+  function myDev() {
+    return prog.dev[DEVICE] || (prog.dev[DEVICE] = { seen: {}, days: {}, tags: {} });
+  }
+  function loadLocal() {
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        var o = JSON.parse(raw);
+        if (o && o.v === 1) return withDev(Object.assign(emptyProg(), o));
+      }
+    } catch (e) { /* storage unavailable */ }
+    return emptyProg();
+  }
+  var prog = loadLocal();
+  function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(prog)); } catch (e) { /* ignore */ } }
+  function touch() { prog.updated = Date.now(); saveLocal(); }
+
+  /* ---------- merging progress (import + sync) ---------- */
+
+  function isObj(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
+  function validProg(o) {
+    return isObj(o) && o.v === 1 && isObj(o.seen) && isObj(o.wrong) && Array.isArray(o.tagList) &&
+      isObj(o.days) && isObj(o.done) && Array.isArray(o.log) && Array.isArray(o.recent) &&
+      (o.fixed === undefined || isObj(o.fixed));
+  }
+  // Accepts an export file ({ app, prog }) or a bare progress object; returns null if invalid.
+  function progFrom(o) {
+    var p = isObj(o) && isObj(o.prog) ? o.prog : o;
+    return validProg(p) && (p.dev === undefined || isObj(p.dev)) ? withDev(Object.assign(emptyProg(), p)) : null;
+  }
+  function num(x) { return typeof x === 'number' && isFinite(x) ? x : 0; }
+  function uniqTail(list, n) {
+    var seen = {}, out = [];
+    list.forEach(function (x) { var k = JSON.stringify(x); if (!seen[k]) { seen[k] = 1; out.push(x); } });
+    return out.slice(-n);
+  }
+  // Combines two progress records without losing anything; merging the same data twice changes nothing.
+  // force (explicit import): bring b's data in even if this device was reset after b was saved.
+  function mergeProg(a, b, force) {
+    a = withDev(Object.assign(emptyProg(), a)); b = withDev(Object.assign(emptyProg(), b));
+    if (force) b.reset = a.reset;
+    if (num(a.reset) !== num(b.reset)) {
+      var newer = num(a.reset) > num(b.reset) ? a : b;
+      return Object.assign(emptyProg(), newer);
+    }
+    var m = emptyProg();
+    m.reset = num(a.reset);
+    m.updated = Math.max(num(a.updated), num(b.updated));
+    [a, b].forEach(function (p) {
+      Object.keys(p.done).forEach(function (k) { if (!m.done[k] || p.done[k] > m.done[k]) m.done[k] = p.done[k]; });
+      // each device's counters only grow, so the larger value is the newer one
+      Object.keys(p.dev).forEach(function (id) {
+        var src = p.dev[id] || {}, dst = m.dev[id] || (m.dev[id] = { seen: {}, days: {}, tags: {} });
+        Object.keys(src.seen || {}).forEach(function (k) { dst.seen[k] = Math.max(dst.seen[k] || 0, num(src.seen[k])); });
+        ['days', 'tags'].forEach(function (f) {
+          Object.keys(src[f] || {}).forEach(function (k) {
+            var v = src[f][k] || [], cur = dst[f][k] || [0, 0];
+            dst[f][k] = [Math.max(cur[0], num(v[0])), Math.max(cur[1], num(v[1]))];
+          });
+        });
+      });
+    });
+    var order = [];
+    a.tagList.concat(b.tagList).forEach(function (r) { if (r && r.t && order.indexOf(r.t) < 0) order.push(r.t); });
+    var tags = {};
+    Object.keys(m.dev).forEach(function (id) {
+      var d = m.dev[id];
+      Object.keys(d.seen).forEach(function (k) { m.seen[k] = (m.seen[k] || 0) + d.seen[k]; });
+      Object.keys(d.days).forEach(function (k) {
+        var dd = m.days[k] || (m.days[k] = { n: 0, ok: 0 });
+        dd.n += d.days[k][0]; dd.ok += d.days[k][1];
+      });
+      Object.keys(d.tags).forEach(function (k) {
+        var t = tags[k] || (tags[k] = [0, 0]);
+        t[0] += d.tags[k][0]; t[1] += d.tags[k][1];
+        if (order.indexOf(k) < 0) order.push(k);
+      });
+    });
+    m.tagList = order.filter(function (k) { return tags[k]; }).map(function (k) { return { t: k, ok: tags[k][0], bad: tags[k][1] }; });
+    var ids = {};
+    [a, b].forEach(function (p) { Object.keys(p.wrong).concat(Object.keys(p.fixed)).forEach(function (id) { ids[id] = 1; }); });
+    Object.keys(ids).forEach(function (id) {
+      var w = Math.max(num(a.wrong[id]), num(b.wrong[id]));
+      var f = Math.max(num(a.fixed[id]), num(b.fixed[id]));
+      if (w > f) m.wrong[id] = w; else if (f) m.fixed[id] = f;
+    });
+    m.log = uniqTail(a.log.concat(b.log).sort(function (x, y) { return String(x.t) < String(y.t) ? -1 : String(x.t) > String(y.t) ? 1 : 0; }), 40);
+    m.recent = uniqTail(a.recent.concat(b.recent), 40);
+    return m;
+  }
+  // Order-independent fingerprint of the progress content (ignores the "updated" timestamp).
+  function canon(v) {
+    if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+    if (isObj(v)) return '{' + Object.keys(v).sort().map(function (k) { return JSON.stringify(k) + ':' + canon(v[k]); }).join(',') + '}';
+    return JSON.stringify(v);
+  }
+  function sameProg(a, b) {
+    var x = Object.assign(emptyProg(), a), y = Object.assign(emptyProg(), b);
+    x.updated = 0; y.updated = 0;
+    return canon(x) === canon(y);
+  }
+  function adoptProg(p) {
+    prog = p; pruneProg(); saveLocal();
+    if (phase === 'hub') render();
+  }
+
+  /* ---------- sync via a secret GitHub Gist ---------- */
+
+  var GIST_FILE = 'deutsch-up-progress.json';
+  var syncCfg = (function () {
+    try { var c = JSON.parse(localStorage.getItem(SYNC_KEY) || 'null'); return c && c.token ? c : null; } catch (e) { return null; }
+  })();
+  var syncStatus = '', syncBusy = false, syncAgain = false, syncTimer = null;
+  function saveSyncCfg() {
+    try { if (syncCfg) localStorage.setItem(SYNC_KEY, JSON.stringify(syncCfg)); else localStorage.removeItem(SYNC_KEY); } catch (e) { /* ignore */ }
+  }
+  function gh(method, path, body, keepalive) {
+    return fetch('https://api.github.com' + path, {
+      method: method, cache: 'no-store', keepalive: !!keepalive,
+      headers: { Authorization: 'Bearer ' + syncCfg.token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (r) {
+      if (!r.ok) { var e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+      return r.json();
+    });
+  }
+  function gistBody() {
+    var f = {}; f[GIST_FILE] = { content: JSON.stringify({ app: 'deutsch-up', kind: 'progress', prog: prog }) };
+    return { files: f };
+  }
+  function readGist(g) {
+    var f = g && g.files && g.files[GIST_FILE];
+    if (!f) return Promise.resolve(null);
+    var txt = f.truncated ? fetch(f.raw_url, { cache: 'no-store' }).then(function (r) { return r.text(); }) : Promise.resolve(f.content);
+    return txt.then(function (t) { try { return progFrom(JSON.parse(t)); } catch (e) { return null; } });
+  }
+  // Finds the gist that holds our file, or creates a secret one.
+  function findOrCreateGist() {
+    return gh('GET', '/gists?per_page=100').then(function (list) {
+      var g = (list || []).filter(function (x) { return x.files && x.files[GIST_FILE]; })[0];
+      if (g) return g.id;
+      var body = gistBody(); body.public = false; body.description = 'Deutsch Up – postup (synchronizace)';
+      return gh('POST', '/gists', body).then(function (x) { return x.id; });
+    });
+  }
+  function fmtTime(t) { var d = new Date(t); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+  function setSyncStatus(s) {
+    syncStatus = s;
+    var el = document.getElementById('sync-status');
+    if (el) el.textContent = s;
+  }
+  function syncErr(e) {
+    if (e && (e.status === 401 || e.status === 403)) return 'Token nefunguje (vypršel nebo nemá oprávnění gist). Připoj se znovu.';
+    if (e && e.status === 404) return 'Gist se nenašel. Odpoj a připoj synchronizaci znovu.';
+    return navigator.onLine === false ? 'Jsi offline, synchronizuju později.' : 'Synchronizace se nepovedla, zkusím to později.';
+  }
+  function syncNow() {
+    if (!syncCfg) return Promise.resolve();
+    if (syncBusy) { syncAgain = true; return Promise.resolve(); }
+    if (navigator.onLine === false) { setSyncStatus(syncErr()); return Promise.resolve(); }
+    syncBusy = true; syncAgain = false;
+    setSyncStatus('Synchronizuju…');
+    var start = syncCfg.gistId ? Promise.resolve(syncCfg.gistId) : findOrCreateGist();
+    return start.then(function (id) {
+      syncCfg.gistId = id; saveSyncCfg();
+      return gh('GET', '/gists/' + id).then(readGist).then(function (remote) {
+        var merged = remote ? mergeProg(prog, remote) : prog;
+        if (!sameProg(merged, prog)) adoptProg(merged);
+        if (!remote || !sameProg(prog, remote)) return gh('PATCH', '/gists/' + id, gistBody());
+      });
+    }).then(function () {
+      syncCfg.last = Date.now(); saveSyncCfg();
+      setSyncStatus('Synchronizováno v ' + fmtTime(syncCfg.last) + '.');
+    }, function (e) {
+      setSyncStatus(syncErr(e));
+    }).then(function () {
+      syncBusy = false;
+      if (syncAgain) syncSoon(0);
+    });
+  }
+  function syncSoon(ms) {
+    if (!syncCfg) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(syncNow, ms || 0);
+  }
+  // Last-chance push when the app is hidden/closed (keepalive lets it outlive the page).
+  function syncOnHide() {
+    if (!syncCfg || !syncCfg.gistId || navigator.onLine === false) return;
+    if (syncCfg.last && prog.updated <= syncCfg.last) return;
+    try { gh('PATCH', '/gists/' + syncCfg.gistId, gistBody(), true).then(function () { syncCfg.last = Date.now(); saveSyncCfg(); }, function () {}); } catch (e) { /* ignore */ }
+  }
+
+  function bumpTag(tag, ok) {
+    if (!tag) return;
+    var rec = null;
+    for (var i = 0; i < prog.tagList.length; i++) if (prog.tagList[i].t === tag) { rec = prog.tagList[i]; break; }
+    if (!rec) { rec = { t: tag, ok: 0, bad: 0 }; prog.tagList.push(rec); }
+    if (ok) rec.ok += 1; else rec.bad += 1;
+    var d = myDev(), c = d.tags[tag] || (d.tags[tag] = [0, 0]);
+    c[ok ? 0 : 1] += 1;
+  }
+
+  function track(it, parts, label) {
+    if (!it || !it.id || !itemIndex[it.id]) return;
+    var ok = parts.length ? parts.every(function (p) { return p.correct; }) : true;
+    if (ok) { if (prog.wrong[it.id]) { delete prog.wrong[it.id]; prog.fixed[it.id] = Date.now(); } }
+    else { prog.wrong[it.id] = Date.now(); delete prog.fixed[it.id]; }
+    if (!retryMode) {
+      prog.seen[it.id] = (prog.seen[it.id] || 0) + 1;
+      parts.forEach(function (p) { bumpTag(p.tag || it.tag, p.correct); });
+      var dk = dayKey();
+      var dd = prog.days[dk] || (prog.days[dk] = { n: 0, ok: 0 });
+      dd.n += 1; if (ok) dd.ok += 1;
+      var me = myDev(), md = me.days[dk] || (me.days[dk] = [0, 0]);
+      me.seen[it.id] = (me.seen[it.id] || 0) + 1;
+      md[0] += 1; if (ok) md[1] += 1;
+      if (!ok && parts.length) {
+        var bad = parts.filter(function (p) { return !p.correct; })[0];
+        prog.recent.push({ s: itemIndex[it.id].set, q: String(label || it.prompt || it.q || '').slice(0, 140),
+          g: bad.given || '', a: bad.expected || '', t: bad.tag || it.tag || '' });
+        if (prog.recent.length > 40) prog.recent = prog.recent.slice(-40);
+      }
+    }
+    touch();
+  }
+
+  function pickItems(pool, n) {
+    var groups = {};
+    pool.forEach(function (it) { var c = prog.seen[it.id] || 0; (groups[c] = groups[c] || []).push(it); });
+    var out = [];
+    Object.keys(groups).map(Number).sort(function (a, b) { return a - b; }).forEach(function (c) {
+      if (out.length < n) out = out.concat(shuffle(groups[c]).slice(0, n - out.length));
+    });
+    return out;
+  }
+
+  function startSession(setId, n, blockKey) {
+    var items, title, mode;
+    if (setId === '__wrong') {
+      items = Object.keys(prog.wrong).map(function (id) { return itemIndex[id]; }).filter(Boolean)
+        .map(function (x) { return x.it; });
+      items = shuffle(items).slice(0, n);
+      title = 'Opakování chyb'; mode = 'Opakování';
+    } else {
+      var st = setById[setId];
+      if (!st) return;
+      var pool = poolOf(st);
+      items = st.all ? pool.slice() : pickItems(pool, n);
+      if (!st.all) items = shuffle(items);
+      title = st.title;
+      var g = BANK.groups.filter(function (x) { return x.id === st.group; })[0];
+      mode = g ? g.title : '';
+    }
+    if (!items.length) return;
+    session = { setId: setId, n: n, blockKey: blockKey };
+    var o = {
+      id: 'bank-' + setId + '-' + Date.now(), title: title, mode: mode, bank: true, setId: setId,
+      items: items.map(function (it) { return Object.assign({}, it); })
+    };
+    loadExercise(o, { fresh: true, skip: true });
+    try { window.scrollTo(0, 0); } catch (e) { /* ignore */ }
+  }
+
+  function planBlocks() {
+    var list = [];
+    (BANK.plan || []).forEach(function (d, di) {
+      d.blocks.forEach(function (b, bi) {
+        list.push({ day: di, key: 'd' + d.day + 'b' + bi, set: b.set, n: b.n, label: b.label });
+      });
+    });
+    return list;
+  }
+  function nextBlock(fromKey) {
+    var all = planBlocks();
+    var cur = all.filter(function (b) { return b.key === fromKey; })[0];
+    var after = all.filter(function (b) { return !prog.done[b.key] && b.key !== fromKey; });
+    if (!after.length) return null;
+    var same = cur ? after.filter(function (b) { return b.day === cur.day; })[0] : null;
+    return same || after[0];
+  }
+  function startBlock(b) { startSession(b.set, b.n, b.key); }
+  function setCount(setId, n) {
+    if (setId === '__wrong') return Object.keys(prog.wrong).length;
+    var st = setById[setId];
+    if (!st) return 0;
+    return st.all ? poolOf(st).length : Math.min(n || st.n, poolOf(st).length);
+  }
+
+  function goHub() {
+    ex = null; baseEx = null; retryMode = false; session = null; result = null; outcomes = [];
+    phase = 'hub';
+    render();
+    try { window.scrollTo(0, 0); } catch (e) { /* ignore */ }
+  }
+
+  function dayDone(di) {
+    var d = BANK.plan[di];
+    return d.blocks.every(function (b, bi) { return !!prog.done['d' + d.day + 'b' + bi]; });
+  }
+  function firstOpenDay() {
+    for (var i = 0; i < BANK.plan.length; i++) if (!dayDone(i)) return i;
+    return 0;
+  }
+
+  function statsOf() {
+    var n = 0, ok = 0, active = 0, i;
+    Object.keys(prog.days).forEach(function (k) { n += prog.days[k].n; ok += prog.days[k].ok; });
+    var now = new Date();
+    for (i = 0; i < 7; i++) {
+      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      if (prog.days[dayKey(d)] && prog.days[dayKey(d)].n > 0) active += 1;
+    }
+    return { n: n, pct: n ? Math.round(100 * ok / n) : 0, active: active };
+  }
+
+  function tbl(head, rows) {
+    return h('div', { class: 'scroll' }, h('table', { class: 'tbl' },
+      h('thead', {}, h('tr', {}, head.map(function (c) { return h('th', { text: c }); }))),
+      h('tbody', {}, rows.map(function (r) {
+        return h('tr', {}, r.map(function (c, i) { return h('td', {}, i === 0 ? c : h('b', { text: c })); }));
+      }))));
+  }
+  function sheetCard() {
+    var HEAD = ['pád', 'm.', 'ž.', 'stř.', 'mn. č.'];
+    var P = ['1. kdo? co?', '2. koho? čeho?', '3. komu? čemu?', '4. koho? co?'];
+    function rows(a) { return a.map(function (r, i) { return [P[i]].concat(r); }); }
+    var grp = function (title, kids) { return h('details', { class: 'grp' }, h('summary', { text: title }), h('div', { class: 'sheet' }, kids)); };
+    return h('section', { class: 'card' },
+      h('h2', { text: 'Tahák' }),
+      h('p', { class: 'sub', text: 'Pády jsou všude řazené česky: 1. – 2. – 3. – 4. Německé učebnice je řadí jinak (Nominativ, Akkusativ, Dativ, Genitiv = 1. – 4. – 3. – 2. pád), proto si nenech splést pořadí.' }),
+      grp('Členy', [
+        h('h3', { text: 'Určitý člen' }),
+        tbl(HEAD, rows([['der', 'die', 'das', 'die'], ['des', 'der', 'des', 'der'], ['dem', 'der', 'dem', 'den'], ['den', 'die', 'das', 'die']])),
+        h('h3', { text: 'Neurčitý a záporný člen' }),
+        tbl(HEAD, rows([['(k)ein', '(k)eine', '(k)ein', 'keine'], ['(k)eines', '(k)einer', '(k)eines', 'keiner'], ['(k)einem', '(k)einer', '(k)einem', 'keinen'], ['(k)einen', '(k)eine', '(k)ein', 'keine']])),
+        h('p', { text: 'Stejně se skloňují mein, dein, sein, ihr, unser… (mein – meines – meinem – meinen).' }),
+        h('h3', { text: 'Podstatné jméno' }),
+        h('p', { text: '2. pád m. a stř. rodu: -s / -es (des Tisches, des Computers). 3. pád mn. č.: -n (den Kindern), pokud množné číslo nekončí na -n nebo -s. Slabá podstatná jména (der Kollege, der Student, der Kunde, der Herr) mají -n / -en ve všech pádech kromě 1. pádu.' })
+      ]),
+      grp('Koncovky přídavných jmen', [
+        h('h3', { text: 'Po určitém členu (der, die, das)' }),
+        tbl(HEAD, rows([['-e', '-e', '-e', '-en'], ['-en', '-en', '-en', '-en'], ['-en', '-en', '-en', '-en'], ['-en', '-e', '-e', '-en']])),
+        h('p', { text: 'Jen dvě koncovky: -e v 1. pádě j. č. a ve 4. pádě ž. a stř. rodu, všude jinde -en.' }),
+        h('h3', { text: 'Po ein / kein / mein' }),
+        tbl(HEAD, rows([['-er', '-e', '-es', '-en'], ['-en', '-en', '-en', '-en'], ['-en', '-en', '-en', '-en'], ['-en', '-e', '-es', '-en']])),
+        h('p', { text: 'Kde člen nemá koncovku (ein, kein), převezme ji přídavné jméno: ein kleiner Tisch, ein kleines Haus.' }),
+        h('h3', { text: 'Bez členu' }),
+        tbl(HEAD, rows([['-er', '-e', '-es', '-e'], ['-en', '-er', '-en', '-er'], ['-em', '-er', '-em', '-en'], ['-en', '-e', '-es', '-e']])),
+        h('p', { text: 'Přídavné jméno má koncovku určitého členu (dem → kaltem Wasser). Výjimka: 2. pád m. a stř. rodu -en (wegen schlechten Wetters).' })
+      ]),
+      grp('Předložky', [
+        h('h3', { text: 'Vždy 4. pád' }), h('p', { text: 'durch (skrz), für (pro), gegen (proti), ohne (bez), um (kolem, v), bis (do), entlang (podél)' }),
+        h('h3', { text: 'Vždy 3. pád' }), h('p', { text: 'aus (z), außer (kromě), bei (u), mit (s), nach (po, do), seit (od), von (od, z), zu (k), gegenüber (naproti)' }),
+        h('h3', { text: '2. pád' }), h('p', { text: 'wegen (kvůli), trotz (navzdory), während (během), statt (místo), innerhalb / außerhalb (uvnitř / mimo)' }),
+        h('h3', { text: 'Wo? 3. pád / wohin? 4. pád' }), h('p', { text: 'in, an, auf, vor, hinter, neben, über, unter, zwischen. Ich bin im Büro (kde?) × Ich gehe ins Büro (kam?).' }),
+        h('h3', { text: 'Stažené tvary' }), h('p', { text: 'im = in dem, ins = in das, am = an dem, ans = an das, zum = zu dem, zur = zu der, vom = von dem, beim = bei dem, aufs = auf das' })
+      ]),
+      grp('Präteritum', [
+        tbl(['osoba', 'slabé', 'silné', 'sein', 'haben'], [
+          ['ich', 'machte', 'ging', 'war', 'hatte'], ['du', 'machtest', 'gingst', 'warst', 'hattest'], ['er/sie/es', 'machte', 'ging', 'war', 'hatte'],
+          ['wir', 'machten', 'gingen', 'waren', 'hatten'], ['ihr', 'machtet', 'gingt', 'wart', 'hattet'], ['sie/Sie', 'machten', 'gingen', 'waren', 'hatten']]),
+        h('p', { text: 'Slabá slovesa: kmen + -te. Po -t/-d se vkládá -e- (arbeitete). Silná slovesa mění kmen (gehen → ging) a v 1. a 3. os. j. č. nemají koncovku. Modální slovesa ztrácí přehlásku: können → konnte.' }),
+        h('h3', { text: 'Perfekt: haben, nebo sein?' }),
+        h('p', { text: 'sein: pohyb z místa na místo a změna stavu (gehen, fahren, kommen, aufstehen) + bleiben, sein. Ostatní haben.' })
+      ]));
+  }
+
+  function hubView() {
+    var wrap = h('div', { class: 'hub', style: 'display:grid;gap:14px' });
+    if (!BANK) {
+      wrap.append(emptyCard());
+      return wrap;
+    }
+    if (hubDay < 0 || hubDay >= BANK.plan.length) hubDay = 0;
+
+    var st = statsOf();
+    var head = h('section', { class: 'card' },
+      h('h1', { class: 'title', text: 'Týden němčiny' }),
+      h('p', { class: 'sub', text: 'Sedm dní krátkých bloků. Všechna cvičení jsou přímo tady. Na německé slovo klepni a uvidíš překlad, celou větu přeloží tlačítko Překlad.' }),
+      h('div', { class: 'stats' },
+        h('div', { class: 'stat' }, h('b', { text: String(st.n) }), h('span', { text: 'splněných úkolů' })),
+        h('div', { class: 'stat' }, h('b', { text: st.n ? st.pct + ' %' : '–' }), h('span', { text: 'úspěšnost' })),
+        h('div', { class: 'stat' }, h('b', { text: st.active + ' / 7' }), h('span', { text: 'dní za týden' }))));
+    wrap.append(head);
+
+    // plan
+    var tabs = h('div', { class: 'tabs', role: 'group', 'aria-label': 'Dny týdne' }, BANK.plan.map(function (d, i) {
+      return h('button', { class: 'tab' + (dayDone(i) ? ' done' : ''), type: 'button', text: String(d.day),
+        'aria-pressed': i === hubDay ? 'true' : 'false', 'aria-label': 'Den ' + d.day,
+        onclick: function () { hubDay = i; render(); } });
+    }));
+    var day = BANK.plan[hubDay];
+    var open = day.blocks.map(function (b, bi) {
+      return { day: hubDay, key: 'd' + day.day + 'b' + bi, set: b.set, n: b.n, label: b.label };
+    }).filter(function (b) { return !prog.done[b.key]; });
+    var rows = h('ul', { class: 'rows' }, day.blocks.map(function (b, bi) {
+      var key = 'd' + day.day + 'b' + bi;
+      var done = !!prog.done[key];
+      var cnt = setCount(b.set, b.n);
+      var dis = b.set === '__wrong' && cnt === 0;
+      return h('li', {}, h('button', { class: 'row' + (done ? ' done' : ''), type: 'button', disabled: dis,
+        onclick: function () { startBlock({ set: b.set, n: b.n, key: key, label: b.label }); } },
+        h('span', {}, b.label, h('small', { text: b.set === '__wrong' ? (cnt ? 'až ' + Math.min(b.n, cnt) + ' úkolů ze tvých chyb' : 'zatím žádné chyby')
+          : (BANK.sets.filter(function (x) { return x.id === b.set; })[0] || {}).kindLabel === 'Psaní' ? 'krátký text' : cnt + ' ' + plural(cnt) })),
+        h('span', { class: 'go', text: done ? '✓ hotovo' : 'Spustit' })));
+    }));
+    var planCard = h('section', { class: 'card' },
+      h('h2', { text: 'Den ' + day.day + (dayDone(hubDay) ? ' · hotovo' : '') }),
+      h('h1', { class: 'title', text: day.title }), tabs, rows);
+    if (open.length) {
+      planCard.append(h('div', { class: 'actions' }, h('button', { class: 'btn primary', type: 'button',
+        text: open.length === day.blocks.length ? 'Začít den ' + day.day : 'Pokračovat',
+        onclick: function () { startBlock(open[0]); } })));
+    }
+    wrap.append(planCard);
+
+    // weak topics
+    var weak = prog.tagList.filter(function (r) { return r.ok + r.bad >= 4 && r.bad / (r.ok + r.bad) >= 0.25; })
+      .sort(function (a, b) { return b.bad / (b.ok + b.bad) - a.bad / (a.ok + a.bad); }).slice(0, 4);
+    var nWrong = Object.keys(prog.wrong).length;
+    var rev = h('section', { class: 'card' },
+      h('h2', { text: 'Opakování' }),
+      h('button', { class: 'row', type: 'button', disabled: nWrong === 0,
+        onclick: function () { startSession('__wrong', 15, null); } },
+        h('span', {}, 'Moje chyby', h('small', { text: nWrong ? nWrong + ' úkolů čeká na opravu' : 'zatím žádné chyby' })),
+        h('span', { class: 'go', text: 'Spustit' })));
+    if (weak.length) {
+      rev.append(h('p', { class: 'sub', text: 'Nejčastější chyby podle témat' }),
+        h('div', { class: 'weak' }, weak.map(function (r) {
+          return h('span', { class: 'chip', text: r.t + ' · ' + Math.round(100 * r.bad / (r.ok + r.bad)) + ' % chyb' });
+        })));
+    }
+    wrap.append(rev);
+
+    wrap.append(sheetCard());
+
+    // library
+    var lib = h('section', { class: 'card' }, h('h2', { text: 'Knihovna cvičení' }),
+      h('p', { class: 'sub', text: 'Cokoli si můžeš vybrat mimo plán. Nejdřív přijdou úkoly, které jsi ještě neviděl.' }));
+    BANK.groups.forEach(function (g) {
+      var sets = BANK.sets.filter(function (x) { return x.group === g.id; });
+      lib.append(h('details', { class: 'grp' }, h('summary', { text: g.title }),
+        h('p', { class: 'sub', text: g.desc }),
+        h('ul', { class: 'rows' }, sets.map(function (x) {
+          var pool = poolOf(x);
+          var seen = pool.filter(function (it) { return prog.seen[it.id]; }).length;
+          return h('li', {}, h('button', { class: 'row', type: 'button', onclick: function () { startSession(x.id, x.n, null); } },
+            h('span', {}, x.title, h('small', { text: x.all ? (seen ? 'splněno' : x.desc) : seen + ' / ' + pool.length + ' viděno · ' + x.desc })),
+            h('span', { class: 'go', text: x.all ? 'Spustit' : x.n + '×' })));
+        }))));
+    });
+    wrap.append(lib);
+
+    // settings
+    var resetBtn = h('button', { class: 'btn ghost', type: 'button', text: 'Smazat postup' });
+    var armed = false;
+    resetBtn.addEventListener('click', function () {
+      if (!armed) { armed = true; resetBtn.textContent = 'Opravdu smazat? Klepni znovu'; return; }
+      prog = emptyProg(); prog.reset = Date.now(); touch(); syncSoon(0); hubDay = 0; render();
+    });
+    var mta = h('textarea', { class: 'ta', rows: '5', 'aria-label': 'Cvičení ve formátu JSON', spellcheck: 'false' });
+    var merr = h('p', { class: 'err', hidden: true });
+    var manual = h('div', { style: 'display:grid;gap:8px' },
+      h('p', { class: 'sub', text: 'Vložit vlastní cvičení ve formátu JSON:' }), mta, merr,
+      h('div', { class: 'actions' }, h('button', { class: 'btn ghost', type: 'button', text: 'Načíst', onclick: function () {
+        try {
+          var o = JSON.parse(mta.value);
+          if (!validEx(o)) throw new Error('bad');
+          loadExercise(o, { fresh: true });
+        } catch (e) { merr.textContent = 'Tohle není platné cvičení.'; merr.hidden = false; }
+      } })));
+    wrap.append(h('section', { class: 'card' },
+      h('details', { id: 'settings', open: settingsOpen ? true : null,
+        ontoggle: function (e) { settingsOpen = e.target.open; } },
+        h('summary', { text: 'Nastavení a ruční vložení cvičení' }),
+        syncBlock(), backupBlock(),
+        h('div', { class: 'actions', style: 'margin:12px 0' }, resetBtn), manual)));
+    return wrap;
+  }
+
+  var settingsOpen = false, settingsMsg = null;
+
+  function syncBlock() {
+    var box = h('div', { style: 'display:grid;gap:8px;margin-top:12px' }, h('h2', { text: 'Synchronizace mezi zařízeními' }));
+    if (syncCfg) {
+      box.append(
+        h('p', { class: 'sub', id: 'sync-status', text: syncStatus || (syncCfg.last ? 'Synchronizováno v ' + fmtTime(syncCfg.last) + '.' : 'Zapnuto.') }),
+        h('div', { class: 'actions' },
+          h('button', { class: 'btn ghost', type: 'button', text: 'Synchronizovat teď', onclick: function () { syncNow(); } }),
+          h('button', { class: 'btn ghost', type: 'button', text: 'Odpojit', onclick: function () {
+            syncCfg = null; syncStatus = ''; saveSyncCfg(); render();
+          } })));
+      return box;
+    }
+    var tok = h('input', { class: 'ta', type: 'password', autocomplete: 'off', spellcheck: 'false',
+      placeholder: 'ghp_… nebo github_pat_…', 'aria-label': 'GitHub token', style: 'min-height:0' });
+    var err = h('p', { class: 'err', hidden: true });
+    var btn = h('button', { class: 'btn ghost', type: 'button', text: 'Připojit' });
+    btn.addEventListener('click', function () {
+      var t = tok.value.trim();
+      if (!t) { tok.focus(); return; }
+      btn.disabled = true; err.hidden = true;
+      syncCfg = { token: t };
+      findOrCreateGist().then(function (id) {
+        syncCfg.gistId = id; saveSyncCfg(); render(); return syncNow();
+      }, function (e) {
+        syncCfg = null; btn.disabled = false;
+        err.textContent = e && (e.status === 401 || e.status === 403) ? 'Token nefunguje. Musí mít oprávnění „gist“.' : 'Nepodařilo se připojit. Jsi online?';
+        err.hidden = false;
+      });
+    });
+    box.append(
+      h('p', { class: 'sub' }, 'Postup se ukládá do tajného gistu na tvém GitHubu. Na každém zařízení vlož jednou stejný token s oprávněním jen „gist“ (',
+        h('a', { href: 'https://github.com/settings/tokens/new?scopes=gist&description=Deutsch%20Up', target: '_blank', rel: 'noopener', text: 'vytvořit token' }),
+        '). Token zůstává jen v tomhle prohlížeči.'),
+      tok, err, h('div', { class: 'actions' }, btn));
+    return box;
+  }
+
+  function backupBlock() {
+    var file = h('input', { type: 'file', accept: '.json,application/json', hidden: true, 'aria-label': 'Soubor se zálohou postupu' });
+    var msg = h('p', { class: 'sub', hidden: !settingsMsg, text: settingsMsg || '' });
+    file.addEventListener('change', function () {
+      var f = file.files && file.files[0];
+      if (!f) return;
+      f.text().then(function (t) {
+        var p = null;
+        try { p = progFrom(JSON.parse(t)); } catch (e) { p = null; }
+        if (!p) throw new Error('bad');
+        prog = mergeProg(prog, p, true); pruneProg(); touch(); syncSoon(0);
+        settingsMsg = 'Postup ze zálohy je načtený a sloučený.';
+        render();
+      }).catch(function () {
+        msg.textContent = 'Tohle není platná záloha postupu.'; msg.hidden = false; msg.className = 'err';
+      });
+      file.value = '';
+    });
+    var exp = function () {
+      var data = JSON.stringify({ app: 'deutsch-up', kind: 'progress', exportedAt: new Date().toISOString(), prog: prog }, null, 1);
+      var url = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
+      var a = h('a', { href: url, download: 'deutsch-up-postup-' + dayKey().slice(1) + '.json' });
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+    };
+    settingsMsg = null;
+    return h('div', { style: 'display:grid;gap:8px;margin-top:16px' },
+      h('h2', { text: 'Záloha postupu' }),
+      h('div', { class: 'actions' },
+        h('button', { class: 'btn ghost', type: 'button', text: 'Exportovat postup', onclick: exp }),
+        h('button', { class: 'btn ghost', type: 'button', text: 'Importovat postup', onclick: function () { file.click(); } }), file),
+      msg);
+  }
+
+  /* ---------- loading exercises ---------- */
+
+  function loadExercise(o, opts) {
+    var retry = !!(opts && opts.retry);
+    ex = o; retryMode = retry;
+    if (!retry) baseEx = o;
+    idx = 0; outcomes = []; result = null; savedState = 'none';
+    phase = (retry || (opts && opts.skip)) ? 'item' : 'intro';
+    render();
+  }
+
+  /* ---------- offline app: storage, service worker, updates ---------- */
+
+  // Ask the browser not to evict localStorage (progress) under storage pressure.
+  function persistStorage() {
+    try {
+      if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persisted().then(function (p) { if (!p) return navigator.storage.persist(); }).catch(function () {});
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  var reloading = false, wantReload = false;
+  function showUpdate(worker) {
+    bannerEl.replaceChildren(
+      h('span', { text: 'Je k dispozici nová verze' }),
+      h('button', { type: 'button', text: 'Obnovit', onclick: function () {
+        wantReload = true;
+        worker.postMessage({ type: 'SKIP_WAITING' });
+      } }));
+    bannerEl.hidden = false;
+  }
+  function initSW() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      // Only reload when the user asked for the update (first install also changes the controller).
+      if (!wantReload || reloading) return;
+      reloading = true;
+      location.reload();
+    });
+    navigator.serviceWorker.register('./sw.js').then(function (reg) {
+      if (reg.waiting && navigator.serviceWorker.controller) showUpdate(reg.waiting);
+      reg.addEventListener('updatefound', function () {
+        var nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', function () {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdate(nw);
+        });
+      });
+      // An installed app can stay open for days: look for a new version whenever it comes back.
+      document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) reg.update().catch(function () {});
+      });
+    }).catch(function () { /* no offline support, app still works online */ });
+  }
+
+  indexBank();
+  pruneProg();
+  phase = BANK ? 'hub' : 'empty';
+  backEl.addEventListener('click', goHub);
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) syncOnHide(); else syncSoon(0);
+  });
+  window.addEventListener('pagehide', syncOnHide);
+  window.addEventListener('online', function () { syncSoon(0); });
+  hubDay = BANK ? firstOpenDay() : 0;
+  render();
+  persistStorage();
+  initSW();
+  syncSoon(0);
+})();
+</script>
+</body>
+</html>
