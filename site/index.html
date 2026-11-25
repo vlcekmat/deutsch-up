@@ -103,6 +103,7 @@ body {
 .seg.cur { background: var(--mark); }
 .seg.ok { background: var(--ok); }
 .seg.bad { background: var(--bad); }
+.seg.cur.bad { box-shadow: 0 0 0 2px var(--mark); }
 
 .banner {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -195,6 +196,8 @@ input.cg { font: 500 19px var(--body); padding: 0 4px; }
 .fb .example { font-style: italic; }
 .fb .lbl { font-style: normal; color: var(--muted); font-size: 13px; font-weight: 600; margin-right: 4px; }
 .fb ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.fb .learn { font-weight: 600; font-size: 15px; }
+.tag.again { color: var(--ink); border-color: var(--mark); background: color-mix(in srgb, var(--mark) 28%, transparent); }
 .fb .evidence { font-size: 15px; color: var(--muted); }
 .tag {
   justify-self: start; font-size: 12px; font-weight: 600; color: var(--muted);
@@ -318,6 +321,10 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
   var ex = null, baseEx = null, retryMode = false;
   var phase = 'empty';     // empty | hub | intro | item | summary
   var idx = 0, outcomes = [], result = null, savedState = 'none';
+  // Learn loop (like Quizlet "Learn"): queue = item indexes still to answer, learn[i] = mastery state.
+  // A missed item comes back a few items later and must then be answered correctly twice in a row.
+  var queue = [], learn = [];
+  var REQUEUE_BAD = 3, REQUEUE_OK = 6;
   var BANK = window.BANK || null;
   var setById = {}, itemIndex = {};
   var session = null, hubDay = 0;
@@ -460,7 +467,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     else if (phase === 'item') stage.append(itemCard());
     else stage.append(summaryCard());
     if (phase === 'item') {
-      var f = stage.querySelector('input.gap, input.cg, textarea');
+      var f = stage.querySelector('input.gap:not(:disabled), input.cg:not(:disabled), textarea');
       if (f) { try { f.focus(); } catch (e) { /* ignore */ } }
     }
   }
@@ -469,13 +476,16 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     progressEl.replaceChildren();
     if (!ex || phase === 'empty' || phase === 'summary') { progressEl.hidden = true; return; }
     progressEl.hidden = false;
+    var nDone = 0;
     ex.items.forEach(function (_, i) {
-      var o = outcomes[i];
+      var L = learn[i] || {};
       var cls = 'seg';
-      if (o) cls += o.parts.length ? (o.parts.every(function (p) { return p.correct; }) ? ' ok' : ' bad') : ' ok';
-      else if (phase === 'item' && i === idx) cls += ' cur';
+      if (L.done) { cls += ' ok'; nDone += 1; }
+      else if (L.missed) cls += ' bad';
+      if (phase === 'item' && i === idx && !L.done) cls += ' cur';
       progressEl.append(h('span', { class: cls }));
     });
+    progressEl.setAttribute('aria-label', 'Zvládnuto ' + nDone + ' z ' + ex.items.length);
   }
 
   function emptyCard() {
@@ -505,10 +515,10 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     return h('section', { class: 'card' },
       h('h1', { class: 'title', text: ex.title || 'Cvičení' }),
       ex.intro ? h('p', { class: 'txt', text: ex.intro }) : null,
-      h('p', { class: 'meta', text: n + ' ' + plural(n) }),
+      h('p', { class: 'meta', text: n + ' ' + plural(n) + ' · co spleteš, vrátí se, dokud to dvakrát po sobě nedáš správně' }),
       h('div', { class: 'actions' },
         h('button', { class: 'btn primary', type: 'button', text: 'Začít',
-          onclick: function () { phase = 'item'; idx = 0; render(); } })));
+          onclick: function () { phase = 'item'; idx = queue[0]; render(); } })));
   }
 
   function passageEl(p) {
@@ -532,7 +542,9 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
   function itemCard() {
     var it = ex.items[idx];
     var kind = it.kind || 'fill';
-    var card = h('section', { class: 'card' });
+    var rep = learn[idx] && learn[idx].tries > 0;
+    var card = h('section', { class: 'card', 'data-id': it.id || null, 'data-rep': rep ? '1' : null });
+    if (rep) card.append(h('span', { class: 'tag again', text: 'Znovu' }));
     var slot = h('div', { class: 'slot', 'aria-live': 'polite' });
     var actions = h('div', { class: 'actions' });
     var ctx = { it: it, card: card, slot: slot, actions: actions };
@@ -608,15 +620,19 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     ctx.trAnchor = qEl;
     var list = h('div', { class: 'opts', role: 'group' });
     var otrs = [];
-    var btns = it.options.map(function (o, i) {
+    var order = it.options.map(function (_, i) { return i; });
+    if (learn[idx] && learn[idx].tries > 0) order = shuffle(order); // a repeat must not be solvable by position
+    var btns = [];
+    order.forEach(function (i, pos) {
+      var o = it.options[i];
       var otr = it.optTr && it.optTr[i] ? h('span', { class: 'otr', hidden: true, text: it.optTr[i] }) : null;
       if (otr) otrs.push(otr);
       var b = h('button', { class: 'opt', type: 'button' },
-        h('span', { class: 'ltr', text: String.fromCharCode(97 + i) + ')' }), h('span', {}, o, otr));
+        h('span', { class: 'ltr', text: String.fromCharCode(97 + pos) + ')' }), h('span', {}, o, otr));
       b.addEventListener('click', function () { done(i, false); });
-      return b;
+      btns[i] = b;
+      list.append(b);
     });
-    btns.forEach(function (b) { list.append(b); });
     ctx.card.append(list);
     function done(i, skipped) {
       otrs.forEach(function (x) { x.hidden = false; });
@@ -638,6 +654,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
   function buildCtest(ctx) {
     var it = ctx.it;
     var gaps = [];
+    var okGaps = (learn[idx] && learn[idx].okGaps) || [];
     var re = /\{\{([^|}]*)\|([^|}]*)(?:\|([^|}]*))?(?:\|([^}]*))?\}\}/g;
     var wrap = h('div', { class: 'ctext' });
     String(it.text).split(/\n\s*\n/).forEach(function (para) {
@@ -652,6 +669,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
           spellcheck: 'false', 'aria-label': 'Doplň konec slova ' + pre
         });
         inp.style.width = Math.max(3, post.length + 1) + 'ch';
+        if (okGaps.indexOf(gaps.length) >= 0) { inp.value = post; inp.disabled = true; inp.classList.add('ok'); }
         gaps.push({ pre: pre, post: post, tag: m[3] || '', note: m[4] || '', inp: inp });
         p.append(h('span', { class: 'cw' }, h('span', { class: 'pre', text: pre }), inp));
         last = re.lastIndex;
@@ -666,6 +684,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
       var parts = gaps.map(function (g) {
         var v = g.inp.value.trim();
         var full = g.pre + g.post;
+        if (g.inp.disabled) return { given: full, expected: full, correct: true, tag: g.tag, note: g.note, skipped: false };
         var ok = norm(v) !== '' && (norm(v) === norm(g.post) || norm(v) === norm(full));
         g.inp.disabled = true;
         g.inp.classList.add(ok ? 'ok' : 'bad');
@@ -679,7 +698,8 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
       g.inp.addEventListener('keydown', function (e) {
         if (e.key !== 'Enter') return;
         e.preventDefault();
-        if (gaps[i + 1]) gaps[i + 1].inp.focus(); else check();
+        var nx = gaps.slice(i + 1).filter(function (x) { return !x.inp.disabled; })[0];
+        if (nx) nx.inp.focus(); else check();
       });
     });
     ctx.actions.append(h('button', { class: 'btn primary', type: 'button', onclick: check, text: 'Zkontrolovat vše' }));
@@ -711,7 +731,16 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
 
   /* ---------- feedback and flow ---------- */
 
-  function feedbackEl(it, parts, o) {
+  function learnNote(it, L, ok) {
+    if (!L) return null;
+    var t;
+    if (!ok) t = (it.kind === 'ctest' ? 'Chybné mezery se ještě vrátí.' : 'Tenhle úkol se ještě vrátí.') + ' Napiš ho pak dvakrát správně.';
+    else if (!L.done) t = 'Dobře. Ještě jednou později a máš to.';
+    else if (L.missed) t = 'Zvládnuto.';
+    return t ? h('p', { class: 'learn', text: t }) : null;
+  }
+
+  function feedbackEl(it, parts, o, L) {
     var kind = it.kind || 'fill';
     if (kind === 'write') {
       return h('div', { class: 'fb ok' }, h('h3', { text: 'Text je hotový.' }),
@@ -725,7 +754,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     if (allOk) head = kind === 'ctest' ? 'Všechny mezery správně.' : OK_LINES[idx % OK_LINES.length];
     else if (kind === 'ctest') head = 'Správně ' + nOk + ' z ' + parts.length + '.';
     else head = skipped ? 'Nevadí, tady je řešení.' : 'Tentokrát ne, ale tady je vzorec.';
-    var box = h('div', { class: 'fb ' + cls }, h('h3', { text: head }));
+    var box = h('div', { class: 'fb ' + cls }, h('h3', { text: head }), learnNote(it, L, allOk));
 
     if (kind === 'ctest') {
       var wrong = parts.filter(function (p) { return !p.correct; });
@@ -757,15 +786,31 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
   function complete(ctx, parts, o) {
     var out = { n: ctx.it._n || idx + 1, kind: ctx.it.kind || 'fill', parts: parts, label: (o && o.label) || '' };
     if (o && o.text) out.text = o.text;
-    outcomes[idx] = out;
-    track(ctx.it, parts, (o && o.label) || '');
+    var L = learn[idx];
+    var ok = parts.every(function (p) { return p.correct; });
+    L.tries += 1;
+    // Score, stats and the mistakes list reflect the first attempt; repeats only drive the learn loop.
+    if (L.tries === 1) {
+      outcomes[idx] = out;
+      track(ctx.it, parts, (o && o.label) || '');
+    }
+    if (out.kind === 'ctest') L.okGaps = parts.map(function (p, i) { return p.correct ? i : -1; }).filter(function (i) { return i >= 0; });
+    if (ok) {
+      L.streak += 1;
+      if (L.streak >= L.need) L.done = true;
+    } else {
+      L.missed = true; L.streak = 0;
+      if (out.kind !== 'ctest') L.need = 2; // C-tests re-ask only the wrong gaps, so one clean pass is enough
+    }
+    queue.shift();
+    if (!L.done) queue.splice(Math.min(queue.length, ok ? REQUEUE_OK : REQUEUE_BAD), 0, idx);
     ctx.actions.replaceChildren();
     hidePop();
     if (ctx.it.kind !== 'write' && ctx.trLine && ctx.trLine()) ctx.trLine().remove();
-    ctx.slot.replaceChildren(feedbackEl(ctx.it, parts, o));
-    var last = idx === ex.items.length - 1;
+    ctx.slot.replaceChildren(feedbackEl(ctx.it, parts, o, L));
+    var last = queue.length === 0;
     var next = h('button', { class: 'btn primary', type: 'button', text: last ? 'Zobrazit výsledek' : 'Další',
-      onclick: function () { if (last) finish(); else { idx += 1; render(); } } });
+      onclick: function () { if (last) finish(); else { idx = queue[0]; render(); } } });
     ctx.actions.append(next);
     renderProgress();
     try { next.focus(); } catch (e) { /* ignore */ }
@@ -779,6 +824,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     result = {
       id: ex.id, title: ex.title || '', mode: ex.mode || '', finishedAt: new Date().toISOString(),
       score: all.filter(function (p) { return p.correct; }).length, total: all.length, tags: tags,
+      repeats: learn.filter(function (L) { return L.missed; }).length,
       items: outcomes.map(function (o) {
         var r = { n: o.n, kind: o.kind, prompt: o.label, parts: o.parts };
         if (o.text) r.text = o.text;
@@ -850,7 +896,9 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
       var pct = Math.round(100 * r.score / total);
       card.append(
         h('div', { class: 'score' }, h('span', { class: 'big', text: String(r.score) }), h('span', { class: 'of', text: ' / ' + total })),
-        h('p', { class: 'lead', text: summaryLine(pct) }));
+        h('p', { class: 'lead', text: summaryLine(pct) }),
+        h('p', { class: 'meta', text: 'Napoprvé správně ' + r.score + ' z ' + total + '. ' +
+          (r.repeats ? 'Všech ' + r.repeats + ' ' + plural(r.repeats) + ' s chybou máš teď zvládnuté.' : 'Nic nebylo potřeba opakovat.') }));
     } else {
       card.append(h('h1', { class: 'title', text: 'Hotovo' }));
     }
@@ -868,7 +916,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
       (it.parts || []).forEach(function (p) { if (!p.correct) wrong.push({ it: it, p: p }); });
     });
     if (wrong.length) {
-      card.append(h('div', { class: 'block' }, h('h2', { text: 'Co opravit' }),
+      card.append(h('div', { class: 'block' }, h('h2', { text: 'Co dalo práci' }),
         h('ul', { class: 'wrong' }, wrong.map(function (w) {
           return h('li', {},
             h('span', {}, w.p.given ? h('s', { text: w.p.given }) : h('em', { text: 'bez odpovědi' }), ' → ', h('b', { text: w.p.expected })),
@@ -1361,7 +1409,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     var st = statsOf();
     var head = h('section', { class: 'card' },
       h('h1', { class: 'title', text: 'Týden němčiny' }),
-      h('p', { class: 'sub', text: 'Sedm dní krátkých bloků. Všechna cvičení jsou přímo tady. Na německé slovo klepni a uvidíš překlad, celou větu přeloží tlačítko Překlad.' }),
+      h('p', { class: 'sub', text: 'Sedm dní krátkých bloků. Všechna cvičení jsou přímo tady. Na německé slovo klepni a uvidíš překlad, celou větu přeloží tlačítko Překlad. Co spleteš, vrátí se, dokud to dvakrát po sobě nedáš správně – blok je hotový, až zvládneš všechno.' }),
       h('div', { class: 'stats' },
         h('div', { class: 'stat' }, h('b', { text: String(st.n) }), h('span', { text: 'splněných úkolů' })),
         h('div', { class: 'stat' }, h('b', { text: st.n ? st.pct + ' %' : '–' }), h('span', { text: 'úspěšnost' })),
@@ -1542,7 +1590,10 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     var retry = !!(opts && opts.retry);
     ex = o; retryMode = retry;
     if (!retry) baseEx = o;
-    idx = 0; outcomes = []; result = null; savedState = 'none';
+    outcomes = []; result = null; savedState = 'none';
+    learn = o.items.map(function () { return { tries: 0, streak: 0, need: 1, done: false, missed: false, okGaps: null }; });
+    queue = o.items.map(function (_, i) { return i; });
+    idx = queue[0];
     phase = (retry || (opts && opts.skip)) ? 'item' : 'intro';
     render();
   }

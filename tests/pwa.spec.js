@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
-const { waitForSW, answerCurrent, statDone, openSettings } = require('./helpers');
+const { waitForSW, answerCurrent, finishExercise, statDone, openSettings } = require('./helpers');
 
 test.skip(!!process.env.LIVE_URL, 'local-only suite');
 
@@ -176,4 +176,44 @@ test('a new deploy shows the update banner and Obnovit activates it', async ({ p
   } finally {
     fs.writeFileSync(swFile, original);
   }
+});
+
+test('missed items come back until answered right twice; only then is the block done', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: /Začít den 1/ }).click();
+  const card = page.locator('#stage .card');
+  const missed = await card.getAttribute('data-id');
+  await card.getByRole('button', { name: 'Nevím' }).click();
+  await expect(card.locator('.fb .learn')).toContainText('vrátí');
+  await page.getByRole('button', { name: 'Další' }).click();
+
+  // leaving half-way does not complete the block
+  await answerCurrent(page, { correct: true });
+  await page.locator('#back').click();
+  expect(await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('de-prog-v1')).done).length)).toBe(0);
+
+  await page.getByRole('button', { name: /^Pokračovat|^Začít den 1/ }).click();
+  const seen = [];
+  let answers = 0;
+  for (;;) {
+    seen.push({ id: await card.getAttribute('data-id'), rep: await card.getAttribute('data-rep') });
+    if (answers === 0) await card.getByRole('button', { name: 'Nevím' }).click();
+    else await answerCurrent(page, { correct: true });
+    answers += 1;
+    const next = page.getByRole('button', { name: /^Další$|^Zobrazit výsledek$/ });
+    const label = await next.textContent();
+    await next.click();
+    if (label === 'Zobrazit výsledek') break;
+  }
+  const first = seen[0].id;
+  const again = seen.filter((s) => s.id === first);
+  expect(again).toHaveLength(3); // missed once + two correct repeats
+  expect(again.slice(1).every((s) => s.rep === '1')).toBe(true);
+  expect(seen.findIndex((s, i) => i > 0 && s.id === first)).toBeGreaterThan(1); // not repeated immediately
+  expect(answers).toBe(new Set(seen.map((s) => s.id)).size + 2);
+  await expect(page.locator('.score .big')).toHaveText(String(answers - 3));
+  const prog = await page.evaluate(() => JSON.parse(localStorage.getItem('de-prog-v1')));
+  expect(Object.keys(prog.done)).toEqual(['d1b0']);
+  expect(prog.wrong[first]).toBeTruthy(); // stays in "Moje chyby" for later review
+  expect(missed).toBeTruthy();
 });

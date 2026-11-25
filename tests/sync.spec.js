@@ -1,6 +1,6 @@
 // Two "devices" (separate browser contexts) syncing through a mocked GitHub Gist API.
 const { test, expect } = require('@playwright/test');
-const { answerCurrent, statDone, openSettings } = require('./helpers');
+const { answerCurrent, finishExercise, statDone, openSettings } = require('./helpers');
 
 test.skip(!!process.env.LIVE_URL, 'local-only suite');
 
@@ -86,13 +86,7 @@ test('progress syncs between two devices via a secret gist', async ({ browser })
 
   // finishing a block on A pushes automatically; B sees it after reopening
   await a.getByRole('button', { name: /^Pokračovat|^Začít den 1/ }).click();
-  for (let i = 0; i < 12; i++) {
-    await answerCurrent(a);
-    const next = a.getByRole('button', { name: /^Další$|^Zobrazit výsledek$/ });
-    const label = await next.textContent();
-    await next.click();
-    if (label === 'Zobrazit výsledek') break;
-  }
+  await finishExercise(a);
   await expect(a.locator('#save')).toContainText('synchronizuje');
   await expect.poll(async () => JSON.parse(JSON.parse(Object.values(gh.gists)[0].files['deutsch-up-progress.json'].content).prog ? Object.values(gh.gists)[0].files['deutsch-up-progress.json'].content : '{}').prog.log.length).toBe(1);
   await b.reload();
