@@ -17,6 +17,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preload" href="fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
+<script>
+// apply the saved theme before the first paint (no flash of the wrong colours)
+(function () {
+  try {
+    var t = JSON.parse(localStorage.getItem('de-theme-v1') || '{}');
+    if (t.mode === 'light' || t.mode === 'dark') document.documentElement.setAttribute('data-theme', t.mode);
+    if (t.accent) document.documentElement.setAttribute('data-accent', t.accent);
+  } catch (e) { /* ignore */ }
+})();
+</script>
 <style>
 :root {
   /* Layout: one column of cards, thumb-reach buttons at the bottom of each card.
@@ -194,7 +204,7 @@ input.cg { font: 500 19px var(--body); padding: 0 4px; }
 .fb.bad h3, .fb.skip h3 { color: var(--bad); }
 .fb p { margin: 0; }
 .fb .example { font-style: italic; }
-.fb .lbl { font-style: normal; color: var(--muted); font-size: 13px; font-weight: 600; margin-right: 4px; }
+.fb .lbl, .entry .lbl { font-style: normal; color: var(--muted); font-size: 13px; font-weight: 600; margin-right: 6px; }
 .fb ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
 .fb .learn { font-weight: 600; font-size: 15px; }
 .tag.again { color: var(--ink); border-color: var(--mark); background: color-mix(in srgb, var(--mark) 28%, transparent); }
@@ -294,20 +304,127 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
 .tbl td:first-child { color: var(--muted); white-space: nowrap; font-size: 13px; }
 .tbl b { font-weight: 600; }
 .scroll { overflow-x: auto; }
+
+/* accent colours (Nastavení → Vzhled); dark values are brighter so they keep contrast */
+:root[data-accent="blue"] { --mark: #3B82F6; }
+:root[data-accent="green"] { --mark: #22A06B; }
+:root[data-accent="pink"] { --mark: #E4577F; }
+:root[data-accent="violet"] { --mark: #8B5CF6; }
+:root[data-accent="orange"] { --mark: #F07B22; }
+@media (prefers-color-scheme: dark) {
+  :root[data-accent="blue"]:not([data-theme="light"]) { --mark: #6AA8FF; }
+  :root[data-accent="green"]:not([data-theme="light"]) { --mark: #4CD38E; }
+  :root[data-accent="pink"]:not([data-theme="light"]) { --mark: #FF86A6; }
+  :root[data-accent="violet"]:not([data-theme="light"]) { --mark: #B39DFF; }
+  :root[data-accent="orange"]:not([data-theme="light"]) { --mark: #FF9D57; }
+}
+:root[data-theme="dark"][data-accent="blue"] { --mark: #6AA8FF; }
+:root[data-theme="dark"][data-accent="green"] { --mark: #4CD38E; }
+:root[data-theme="dark"][data-accent="pink"] { --mark: #FF86A6; }
+:root[data-theme="dark"][data-accent="violet"] { --mark: #B39DFF; }
+:root[data-theme="dark"][data-accent="orange"] { --mark: #FF9D57; }
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+.swatch { width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--line); cursor: pointer; }
+.swatch[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 3px var(--surface) inset; }
+.swatch:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* course: weeks, theory */
+.wtabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.wtab { font: 600 14px var(--body); min-height: 38px; padding: 0 12px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.wtab[aria-pressed="true"] { background: var(--btn); color: var(--btn-ink); border-color: var(--btn); }
+.wtab.done { border-color: var(--ok); }
+.wbar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.wbar > span { display: block; height: 100%; background: var(--ok); }
+.theory { display: grid; gap: 12px; }
+.theory h3 { margin: 6px 0 0; font: 700 18px var(--display); }
+.theory p { margin: 0; }
+.theory .tip { background: color-mix(in srgb, var(--mark) 22%, transparent); border-left: 3px solid var(--mark); padding: 8px 12px; border-radius: 0 10px 10px 0; }
+.theory .exs { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.theory .exs li { display: grid; gap: 1px; }
+.theory .exs .de { font-weight: 600; }
+.theory .exs .cz { color: var(--muted); font-size: 14px; }
+.row.theory-row { border-style: dashed; }
+.today { display: grid; gap: 10px; }
+
+/* new item kinds */
+.cz-prompt { margin: 0; font: 500 clamp(20px, 5.4vw, 24px)/1.4 var(--display); }
+.pool, .built { display: flex; flex-wrap: wrap; gap: 8px; min-height: 48px; }
+.built { border-bottom: 2px dashed var(--line); padding-bottom: 10px; }
+.tok { font: 500 17px var(--body); padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; min-height: 42px; }
+.tok:disabled { opacity: .35; cursor: default; }
+.built .tok { background: color-mix(in srgb, var(--mark) 22%, transparent); border-color: var(--mark); }
+.marks { display: flex; flex-wrap: wrap; gap: 4px 6px; font-size: 17px; line-height: 1.6; }
+.mk { border-radius: 6px; padding: 0 4px; }
+.mk.bad, .mk.extra { background: var(--bad-bg); color: var(--bad); text-decoration: line-through; }
+.mk.typo { background: color-mix(in srgb, var(--mark) 30%, transparent); }
+.mk.moved { background: color-mix(in srgb, var(--mark) 45%, transparent); box-shadow: inset 0 -2px 0 var(--mark); }
+.mk.miss { color: var(--ok); font-weight: 700; }
+.cd del { color: var(--bad); background: var(--bad-bg); text-decoration: line-through; }
+.cd ins { color: var(--ok); background: var(--ok-bg); text-decoration: none; font-weight: 700; }
+.diag { display: grid; gap: 6px; margin: 0; padding-left: 18px; }
+.fb .tips { color: var(--muted); font-size: 14px; }
+.chk { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 15px; }
+.chk .y { color: var(--ok); } .chk .n { color: var(--bad); }
+.play { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.play .btn { min-height: 52px; }
+.audio-hidden { color: var(--muted); font-style: italic; }
+.ai { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; background: var(--surface); }
+.ai h4 { margin: 0; font: 600 15px var(--body); }
+.say { font: 600 13px var(--body); border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 999px; padding: 2px 10px; min-height: 30px; cursor: pointer; }
+
+/* dictionary overlay */
+.ov { position: fixed; inset: 0; z-index: 60; background: var(--bg); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.ov .app { padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
+.ov-head { display: flex; gap: 8px; align-items: center; position: sticky; top: 0; background: var(--bg); padding: 8px 0; z-index: 1; }
+.ov-head input { flex: 1; font: 400 18px var(--body); min-height: 48px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: 0 14px; }
+.ov-head input:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.dtabs { display: flex; gap: 6px; }
+.entry { display: grid; gap: 8px; }
+.entry .hw { font: 700 24px var(--display); margin: 0; }
+.entry .gram { color: var(--muted); font-size: 14px; margin: 0; }
+.entry ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.entry .cs { font-weight: 600; font-size: 17px; }
+.entry .note { font-size: 14px; color: var(--muted); }
+.entry .ex { font-style: italic; }
+.reslist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pop .pop-act { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.pop .pop-act button { font: 600 13px var(--body); color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+.w.k { text-decoration: underline dotted color-mix(in srgb, var(--muted) 70%, transparent); }
+.w:not(.k) { text-decoration: none; }
+
+/* character sheet */
+.hero { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
+.avatar { width: 64px; height: 64px; border-radius: 16px; background: var(--btn); color: var(--btn-ink); display: grid; place-items: center; font: 700 26px var(--display); }
+.lvl { font: 700 15px var(--body); color: var(--muted); }
+.skills { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.skill { display: grid; gap: 4px; }
+.skill .top { display: flex; align-items: baseline; gap: 8px; }
+.skill .ic { width: 26px; text-align: center; color: var(--muted); font-weight: 700; }
+.skill .nm { font-weight: 600; flex: 1; }
+.skill .lv { font: 700 15px var(--display); font-variant-numeric: tabular-nums; }
+.skill .bar { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; margin-left: 34px; }
+.skill .bar > span { display: block; height: 100%; background: var(--mark); }
+.skill .sub2 { margin-left: 34px; font-size: 13px; color: var(--muted); }
+.skill.locked { opacity: .55; }
 </style>
 </head>
 <body>
 <div class="app">
   <header class="top">
     <div class="brand">Deutsch Up<small>A2 → B1</small></div>
-    <div class="right"><div class="mode" id="mode" hidden></div><button class="back" id="back" type="button" hidden>‹ Přehled</button></div>
+    <div class="right"><div class="mode" id="mode" hidden></div><button class="back" id="dictbtn" type="button" aria-label="Slovník">Slovník</button><button class="back" id="back" type="button" hidden>‹ Přehled</button></div>
   </header>
   <div class="progress" id="progress" hidden></div>
   <div class="banner" id="banner" hidden></div>
   <main id="stage"></main>
 </div>
+<div class="ov" id="overlay" hidden role="dialog" aria-modal="true" aria-label="Slovník"></div>
 
 <script src="bank.js"></script>
+<script src="js/diagnose.js"></script>
+<script src="js/speech.js"></script>
+<script src="js/dict.js"></script>
 <script>
 (function () {
   'use strict';
@@ -355,10 +472,15 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
   }
 
   function arr(v) { return Array.isArray(v) ? v : [v]; }
+  // ß = ss and ä = ae etc. count as the same spelling (keyboards without umlauts)
   function norm(s) {
+    if (window.DU_DIAG) return window.DU_DIAG.norm(s);
     return String(s === null || s === undefined ? '' : s).trim().toLowerCase()
       .replace(/ß/g, 'ss').replace(/\s+/g, ' ').replace(/[.,;:!?]+$/, '');
   }
+  var DIAG = window.DU_DIAG || null;
+  var SPEAK = window.DU_SPEAK || null;
+  var DICT = window.DU_DICT || null;
   function matches(given, expected) {
     var g = norm(given);
     return arr(expected).some(function (e) { return norm(e) === g; });
@@ -388,14 +510,15 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     }
     return null;
   }
-  // German text -> nodes; known words become tappable
+  // German text -> nodes; every word is tappable (dictionary), words with a quick gloss are underlined
   function deText(text) {
     var out = [];
     String(text).split(/([A-Za-zÄÖÜäöüßéÉ]+)/).forEach(function (part, i) {
       if (!part) return;
-      if (i % 2 === 1) {
+      if (i % 2 === 1 && part.length > 1) {
         var g = gloss(part);
-        if (g) { out.push(h('span', { class: 'w', 'data-g': g, role: 'button', tabindex: '0', text: part })); return; }
+        out.push(h('span', { class: g ? 'w k' : 'w', 'data-g': g || null, 'data-w': part, role: 'button', tabindex: '0', text: part }));
+        return;
       }
       out.push(part);
     });
@@ -412,19 +535,42 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     if (popEl) { popEl.remove(); popEl = null; }
     if (popFor) { popFor.classList.remove('on'); popFor = null; }
   }
-  function showPop(el) {
-    if (popFor === el) { hidePop(); return; }
-    hidePop();
-    popFor = el; el.classList.add('on');
-    popEl = h('div', { class: 'pop', role: 'status', text: el.getAttribute('data-g') });
-    document.body.append(popEl);
+  function placePop(el) {
+    if (!popEl) return;
     var r = el.getBoundingClientRect(), pw = popEl.offsetWidth, ph = popEl.offsetHeight;
     var left = Math.max(12, Math.min(window.innerWidth - pw - 12, r.left + r.width / 2 - pw / 2));
     var top = r.bottom + 8;
     if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 8);
     popEl.style.left = left + 'px'; popEl.style.top = top + 'px';
   }
+  function showPop(el) {
+    if (popFor === el) { hidePop(); return; }
+    hidePop();
+    popFor = el; el.classList.add('on');
+    var word = el.getAttribute('data-w') || el.textContent;
+    var txt = h('span', { text: el.getAttribute('data-g') || (DICT ? 'Hledám ve slovníku…' : word) });
+    var act = h('div', { class: 'pop-act' });
+    popEl = h('div', { class: 'pop', role: 'status' }, txt, act);
+    if (SPEAK && SPEAK.supported()) act.append(h('button', { type: 'button', text: '🔊', 'aria-label': 'Přečíst', onclick: function (e) { e.stopPropagation(); SPEAK.say(word); } }));
+    if (DICT) act.append(h('button', { type: 'button', text: 'Slovník', onclick: function (e) { e.stopPropagation(); hidePop(); openDict(word); } }));
+    document.body.append(popEl);
+    placePop(el);
+    if (!DICT) return;
+    var mine = popEl;
+    DICT.lookup(word).then(function (list) {
+      if (popEl !== mine) return;
+      var e = list[0];
+      if (!e) { if (!el.getAttribute('data-g')) txt.textContent = word + ' – ve slovníku není'; placePop(el); return; }
+      if (!el.getAttribute('data-g')) txt.textContent = shortDef(e);
+      var key = wordKey(e);
+      var b = h('button', { type: 'button', text: myWord(key) ? '✓ Ve slovíčkách' : '+ Do slovíček' });
+      b.addEventListener('click', function (ev) { ev.stopPropagation(); if (!myWord(key)) { addWord(e); b.textContent = '✓ Ve slovíčkách'; } });
+      act.append(b);
+      placePop(el);
+    }).catch(function () { if (popEl === mine && !el.getAttribute('data-g')) { txt.textContent = word + ' – slovník se nepodařilo načíst'; placePop(el); } });
+  }
   document.addEventListener('click', function (e) {
+    if (popEl && popEl.contains(e.target)) return;
     var t = e.target.closest ? e.target.closest('.w') : null;
     if (t) { e.preventDefault(); showPop(t); } else hidePop();
   });
@@ -461,14 +607,17 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     backEl.hidden = phase === 'hub' || phase === 'empty';
     if (phase === 'hub') { modeEl.hidden = true; }
     else if (ex) { modeEl.textContent = ex.mode || ''; modeEl.hidden = !ex.mode || !!ex.bank; }
+    if (phase === 'theory' || phase === 'sheet') { modeEl.hidden = true; }
     if (phase === 'hub') stage.append(hubView());
+    else if (phase === 'theory') stage.append(theoryView());
+    else if (phase === 'sheet') stage.append(sheetView());
     else if (phase === 'empty') stage.append(emptyCard());
     else if (phase === 'intro') stage.append(introCard());
     else if (phase === 'item') stage.append(itemCard());
     else stage.append(summaryCard());
     if (phase === 'item') {
-      var f = stage.querySelector('input.gap:not(:disabled), input.cg:not(:disabled), textarea');
-      if (f) { try { f.focus(); } catch (e) { /* ignore */ } }
+      var f = stage.querySelector('input.gap:not(:disabled), input.cg:not(:disabled), textarea:not(:disabled)');
+      if (f) { try { f.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }
     }
   }
 
@@ -547,12 +696,17 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     if (rep) card.append(h('span', { class: 'tag again', text: 'Znovu' }));
     var slot = h('div', { class: 'slot', 'aria-live': 'polite' });
     var actions = h('div', { class: 'actions' });
-    var ctx = { it: it, card: card, slot: slot, actions: actions };
+    var ctx = { it: it, card: card, slot: slot, actions: actions, idx: idx };
     var pas = it.passage || ex.passage;
-    if (pas) card.append(passageEl(pas));
+    if (pas && pas.audio) { ctx.audio = audioPassage(pas); card.append(ctx.audio.el); }
+    else if (pas) card.append(passageEl(pas));
+    if (it.long) card.append(h('span', { class: 'tag again', text: 'Delší věta' }));
     if (kind === 'choice') buildChoice(ctx);
     else if (kind === 'ctest') buildCtest(ctx);
     else if (kind === 'write') buildWrite(ctx);
+    else if (kind === 'order') buildOrder(ctx);
+    else if (kind === 'sentence') buildSentence(ctx);
+    else if (kind === 'listen') buildListen(ctx);
     else buildFill(ctx);
     card.append(slot, actions);
     return card;
@@ -635,6 +789,8 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     });
     ctx.card.append(list);
     function done(i, skipped) {
+      if (ctx.audio) ctx.audio.reveal();
+      if (SPEAK) SPEAK.stop();
       otrs.forEach(function (x) { x.hidden = false; });
       btns.forEach(function (b, j) {
         b.disabled = true;
@@ -729,6 +885,127 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     trToggle(ctx, it.tr);
   }
 
+  /* --- word order: tap chips into a sentence --- */
+  function buildOrder(ctx) {
+    var it = ctx.it;
+    var trEl = h('p', { class: 'cz-prompt', text: it.tr || 'Seřaď slova do věty.' });
+    ctx.card.append(h('p', { class: 'meta', text: 'Poskládej německou větu:' }), trEl);
+    ctx.trAnchor = trEl;
+    var built = h('div', { class: 'built', 'aria-label': 'Tvoje věta', 'aria-live': 'polite' });
+    var pool = h('div', { class: 'pool', role: 'group', 'aria-label': 'Slova' });
+    var picked = [];
+    var toks = learn[idx] && learn[idx].tries > 0 ? shuffle(it.tokens) : it.tokens;
+    var poolBtns = toks.map(function (t, i) {
+      var b = h('button', { class: 'tok', type: 'button', text: t });
+      b.addEventListener('click', function () {
+        if (b.disabled) return;
+        b.disabled = true;
+        var nb = h('button', { class: 'tok', type: 'button', text: t });
+        nb.addEventListener('click', function () {
+          if (done) return;
+          var k = picked.indexOf(entry); picked.splice(k, 1); nb.remove(); b.disabled = false;
+        });
+        var entry = { t: t, i: i, el: nb };
+        picked.push(entry); built.append(nb);
+      });
+      return b;
+    });
+    pool.append.apply(pool, poolBtns);
+    ctx.card.append(built, pool);
+    var done = false;
+    var check = function () {
+      if (picked.length < toks.length) { pool.querySelector('.tok:not(:disabled)').focus(); return; }
+      done = true;
+      poolBtns.forEach(function (b) { b.disabled = true; });
+      var given = picked.map(function (p) { return p.t; }).join(' ');
+      gradeSentence(ctx, given, it.answer);
+    };
+    ctx.actions.append(
+      h('button', { class: 'btn primary', type: 'button', onclick: check, text: 'Zkontrolovat' }),
+      h('button', { class: 'btn ghost', type: 'button', text: 'Nevím', onclick: function () {
+        done = true; poolBtns.forEach(function (b) { b.disabled = true; });
+        gradeSentence(ctx, '', it.answer, true);
+      } }));
+  }
+
+  /* --- translate a Czech sentence into German --- */
+  function buildSentence(ctx) {
+    var it = ctx.it;
+    var cz = h('p', { class: 'cz-prompt', text: it.cz });
+    ctx.card.append(h('p', { class: 'meta', text: 'Přelož do němčiny:' }), cz);
+    ctx.trAnchor = cz;
+    if (it.chips && it.chips.length) ctx.card.append(h('div', { class: 'chips' }, it.chips.map(function (w) { return h('span', { class: 'chip', text: w }); })));
+    var ta = h('textarea', { class: 'ta', rows: it.long ? '4' : '3', placeholder: 'Napiš větu německy…', autocapitalize: 'sentences',
+      autocorrect: 'off', spellcheck: 'false', 'aria-label': 'Tvůj překlad', style: 'min-height:0' });
+    ta.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); check(); } });
+    ctx.card.append(ta);
+    var check = function () {
+      if (!ta.value.trim()) { ta.focus(); return; }
+      ta.disabled = true;
+      gradeSentence(ctx, ta.value.trim(), it.answer);
+    };
+    ctx.actions.append(
+      h('button', { class: 'btn primary', type: 'button', onclick: check, text: 'Zkontrolovat' }),
+      h('button', { class: 'btn ghost', type: 'button', text: 'Nevím', onclick: function () { ta.disabled = true; gradeSentence(ctx, '', it.answer, true); } }));
+  }
+
+  /* --- dictation --- */
+  function speakBtns(text, opts) {
+    opts = opts || {};
+    var wrap = h('div', { class: 'play' });
+    if (!SPEAK || !SPEAK.supported()) {
+      wrap.append(h('p', { class: 'err', text: 'Tenhle prohlížeč neumí číst nahlas. Zkus Safari nebo Chrome.' }));
+      return wrap;
+    }
+    var n = 0;
+    wrap.append(
+      h('button', { class: 'btn' + (opts.primary ? '' : ' ghost'), type: 'button', text: '▶ Přehrát', onclick: function () { n += 1; SPEAK.say(text, { rate: 0.95 }); if (opts.onplay) opts.onplay(n); } }),
+      h('button', { class: 'btn ghost', type: 'button', text: '🐢 Pomalu', onclick: function () { n += 1; SPEAK.say(text, { rate: 0.7 }); if (opts.onplay) opts.onplay(n); } }));
+    if (!SPEAK.hasGerman()) wrap.append(h('p', { class: 'meta', text: 'Nenašel jsem německý hlas. V nastavení telefonu přidej němčinu do Převodu textu na řeč (iPhone: Přístupnost → Mluvený obsah → Hlasy).' }));
+    return wrap;
+  }
+  function buildListen(ctx) {
+    var it = ctx.it;
+    ctx.card.append(h('p', { class: 'meta', text: 'Poslouchej a napiš, co slyšíš:' }), speakBtns(it.text, { primary: true }));
+    var ta = h('textarea', { class: 'ta', rows: '3', placeholder: 'Piš německy…', autocapitalize: 'sentences', autocorrect: 'off', spellcheck: 'false', 'aria-label': 'Diktát', style: 'min-height:0' });
+    ta.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); check(); } });
+    ctx.card.append(ta);
+    ctx.trAnchor = ta;
+    var check = function () {
+      if (!ta.value.trim()) { ta.focus(); return; }
+      ta.disabled = true; if (SPEAK) SPEAK.stop();
+      gradeSentence(ctx, ta.value.trim(), [it.text]);
+    };
+    ctx.actions.append(
+      h('button', { class: 'btn primary', type: 'button', onclick: check, text: 'Zkontrolovat' }),
+      h('button', { class: 'btn ghost', type: 'button', text: 'Nevím', onclick: function () { ta.disabled = true; gradeSentence(ctx, '', [it.text], true); } }));
+    trToggle(ctx, it.tr);
+  }
+
+  /* --- listening comprehension: text hidden until the question is answered --- */
+  function audioPassage(p) {
+    var box = h('div', { class: 'passage' }, h('strong', { text: 'Poslech: ' + (p.title || '') }),
+      h('span', { class: 'audio-hidden', text: 'Text se ukáže po odpovědi. Můžeš si nahrávku pustit, kolikrát chceš.' }));
+    var el = h('div', { style: 'display:grid;gap:10px' }, box, speakBtns(p.text, { primary: true }));
+    return { el: el, reveal: function () {
+      box.replaceChildren.apply(box, [h('strong', {}, deText(p.title || ''))].concat(deText(p.text)));
+      if (p.tr) el.append(h('p', { class: 'trline bare', text: p.tr }));
+    } };
+  }
+
+  /* --- shared grading for sentence-like answers --- */
+  function gradeSentence(ctx, given, answers, skipped) {
+    var it = ctx.it;
+    var alts = (prog.alt && prog.alt[it.id]) || [];
+    var all = [].concat(answers, alts);
+    var res = skipped || !DIAG ? null : DIAG.sentence(given, all, it);
+    var ok = !!(res && res.ok) || (!DIAG && all.some(function (a) { return norm(a) === norm(given); }));
+    ctx.diag = res;
+    ctx.given = given;
+    complete(ctx, [{ given: given, expected: res ? res.best : all[0], correct: ok, tag: it.tag || '', skipped: !!skipped }],
+      { label: it.cz || it.tr || it.text || '', skipped: !!skipped });
+  }
+
   /* ---------- feedback and flow ---------- */
 
   function learnNote(it, L, ok) {
@@ -740,36 +1017,78 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     return t ? h('p', { class: 'learn', text: t }) : null;
   }
 
-  function feedbackEl(it, parts, o, L) {
+  function charDiffEl(given, expected) {
+    if (!DIAG) return null;
+    return h('p', { class: 'cd' }, h('span', { class: 'lbl', text: 'Rozdíl' }), DIAG.charDiff(given, expected).map(function (d) {
+      return d.s === 'same' ? d.t : h(d.s === 'del' ? 'del' : 'ins', { text: d.t });
+    }));
+  }
+  function diagList(notes) {
+    if (!notes || !notes.length) return null;
+    return h('div', {}, h('span', { class: 'lbl', text: 'Co se stalo' }), h('ul', { class: 'diag' }, notes.map(function (n) { return h('li', { text: n }); })));
+  }
+  // async: what the wrong word actually means (dictionary)
+  function meaningOf(word, into) {
+    if (!DICT || !word || /\s/.test(word.trim())) return;
+    DICT.lookup(word.trim()).then(function (list) {
+      var e = list[0];
+      if (!e || e._guess) { into.append(h('p', { class: 'tips', text: '„' + word + '“ ve slovníku není – takové německé slovo nejspíš neexistuje.' })); return; }
+      into.append(h('p', { class: 'tips', text: 'Pro zajímavost: „' + word + '“ = ' + shortDef(e) }));
+    }).catch(function () {});
+  }
+
+  function feedbackEl(it, parts, o, L, ctx) {
     var kind = it.kind || 'fill';
-    if (kind === 'write') {
-      return h('div', { class: 'fb ok' }, h('h3', { text: 'Text je hotový.' }),
-        h('p', { text: 'Na konci kola si ho můžeš zkopírovat a nechat opravit.' }));
-    }
+    if (kind === 'write') return writeFeedback(it, o);
     var allOk = parts.every(function (p) { return p.correct; });
     var skipped = !!(o && o.skipped);
     var cls = allOk ? 'ok' : (skipped ? 'skip' : 'bad');
     var nOk = parts.filter(function (p) { return p.correct; }).length;
     var head;
-    if (allOk) head = kind === 'ctest' ? 'Všechny mezery správně.' : OK_LINES[idx % OK_LINES.length];
+    var d = ctx && ctx.diag;
+    if (allOk) head = kind === 'ctest' ? 'Všechny mezery správně.' : (d && d.typo ? 'Správně, jen překlep.' : OK_LINES[idx % OK_LINES.length]);
     else if (kind === 'ctest') head = 'Správně ' + nOk + ' z ' + parts.length + '.';
-    else head = skipped ? 'Nevadí, tady je řešení.' : 'Tentokrát ne, ale tady je vzorec.';
+    else head = skipped ? 'Nevadí, tady je řešení.' : 'Tentokrát ne – podívej se, co se stalo.';
     var box = h('div', { class: 'fb ' + cls }, h('h3', { text: head }), learnNote(it, L, allOk));
 
     if (kind === 'ctest') {
       var wrong = parts.filter(function (p) { return !p.correct; });
       if (wrong.length) {
         box.append(h('ul', {}, wrong.map(function (p) {
+          var why = DIAG && p.given ? DIAG.word(p.given, p.expected, { tag: p.tag }) : [];
           return h('li', {}, h('b', { text: p.expected }),
             p.given ? ' (napsáno: ' + p.given + ')' : ' (bez odpovědi)',
-            p.note ? ' · ' + p.note : '');
+            p.note ? ' · ' + p.note : '', why.length ? h('div', { class: 'tips', text: why.join(' ') }) : null);
         })));
       }
+    } else if (kind === 'order' || kind === 'sentence' || kind === 'listen') {
+      var p0 = parts[0];
+      if (d && !skipped && (!allOk || d.typo || d.notes.length)) {
+        box.append(h('div', {}, h('span', { class: 'lbl', text: 'Tvoje věta' }),
+          h('div', { class: 'marks' }, d.marks.filter(function (m) { return m.s !== 'miss' && m.s !== 'place'; }).map(function (m) {
+            return h('span', { class: 'mk ' + m.s, title: m.exp ? '→ ' + m.exp : null, text: m.t });
+          }))));
+      }
+      box.append(h('p', {}, allOk ? 'Vzorová věta: ' : 'Správně: ', h('b', { text: p0.expected }),
+        SPEAK && SPEAK.supported() ? ' ' : null,
+        SPEAK && SPEAK.supported() ? h('button', { class: 'say', type: 'button', text: '🔊', 'aria-label': 'Přečíst větu', onclick: function () { SPEAK.say(p0.expected); } }) : null));
+      if (d) box.append(diagList(d.notes.filter(function (n) { return !(allOk && /^Správně, jen/.test(n)); })));
+      if (d && d.tips.length) box.append(h('p', { class: 'tips', text: 'Tip: ' + d.tips.join(' ') }));
     } else if (!allOk) {
-      box.append(h('p', {}, 'Správně: ', h('b', { text: parts[0].expected })));
+      var gv = parts[0].given, exv = parts[0].expected;
+      box.append(h('p', {}, 'Správně: ', h('b', { text: exv })));
+      if (gv && !skipped && DIAG) {
+        var notes = DIAG.word(gv, exv, it);
+        if (kind === 'fill' && DIAG.lev(norm(gv), norm(exv)) <= Math.max(2, exv.length / 3)) box.append(charDiffEl(gv, exv));
+        box.append(diagList(notes));
+        if (!notes.length && kind === 'fill' && isVocab(it)) meaningOf(gv, box);
+      }
     }
     var body = allOk ? it.short : it.explain;
-    if (body) box.append(h('p', { class: 'txt', text: body }));
+    if (body && !(allOk && (kind === 'sentence' || kind === 'order' || kind === 'listen'))) box.append(h('p', { class: 'txt', text: (allOk ? '' : 'Pravidlo: ') + body }));
+    else if (body && allOk && it.short && it.short !== body) box.append(h('p', { class: 'txt', text: it.short }));
+    if (!allOk && !skipped && (kind === 'sentence' || kind === 'order' || kind === 'listen') && ctx) box.append(acceptAndAsk(ctx));
+    if (isVocab(it) && it.lemma) box.append(addLemmaBtn(it.lemma));
     if (kind === 'choice' && it.evidence) {
       box.append(h('p', { class: 'evidence' }, h('span', { class: 'lbl', text: 'Důkaz v textu' }), it.evidence));
     }
@@ -781,6 +1100,175 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     }
     if (!allOk && kind !== 'ctest' && parts[0].tag) box.append(h('span', { class: 'tag', text: parts[0].tag }));
     return box;
+  }
+
+  /* --- "my version is also right" + AI explanation --- */
+  function acceptAndAsk(ctx) {
+    var it = ctx.it;
+    var wrap = h('div', { style: 'display:grid;gap:8px' });
+    var row = h('div', { class: 'actions' });
+    if (it.kind === 'sentence' && ctx.given) {
+      row.append(h('button', { class: 'btn ghost', type: 'button', text: 'Moje verze je taky správně', onclick: function () { acceptOwn(ctx); } }));
+    }
+    var aiOut = h('div');
+    row.append(h('button', { class: 'btn ghost', type: 'button', text: aiCfg ? 'Vysvětlit (AI)' : 'Vysvětlit podrobněji (AI)', onclick: function (e) {
+      var b = e.currentTarget;
+      if (!aiCfg) { aiOut.replaceChildren(h('p', { class: 'tips', text: 'Podrobné vysvětlení od Claude: vlož svůj API klíč v Nastavení → Oprava textů pomocí AI. Bez klíče funguje všechno ostatní.' })); return; }
+      b.disabled = true;
+      aiOut.replaceChildren(h('p', { class: 'meta', text: 'Ptám se Claude…' }));
+      aiSentence(it, ctx.given).then(function (r) { aiOut.replaceChildren(aiResultEl(r, ctx)); }, function (err) { b.disabled = false; aiOut.replaceChildren(h('p', { class: 'err', text: aiErr(err) })); });
+    } }));
+    wrap.append(row, aiOut);
+    return wrap;
+  }
+  function acceptOwn(ctx) {
+    var it = ctx.it, i = ctx.idx, L = learn[i];
+    prog.alt = prog.alt || {};
+    var list = prog.alt[it.id] || (prog.alt[it.id] = []);
+    if (list.indexOf(ctx.given) < 0) list.push(ctx.given);
+    L.missed = L.tries > 1 ? L.missed : false; L.streak = L.need = 1; L.done = true;
+    queue = queue.filter(function (q) { return q !== i; });
+    if (outcomes[i] && L.tries === 1) {
+      outcomes[i].parts.forEach(function (p) { p.correct = true; });
+      if (!retryMode) untrackBad(it, outcomes[i].parts[0].tag || it.tag);
+    }
+    touch(); syncSoon(1500);
+    var parts = [{ given: ctx.given, expected: ctx.given, correct: true, tag: it.tag || '' }];
+    ctx.diag = null;
+    showFeedback(ctx, parts, { label: it.cz || '' }, L);
+    ctx.slot.querySelector('.fb').append(h('p', { class: 'tips', text: 'Uznáno. Tuhle variantu si aplikace pamatuje a příště ji přijme.' }));
+  }
+
+  var AI_KEY = 'de-ai-v1';
+  var aiCfg = (function () { try { var c = JSON.parse(localStorage.getItem(AI_KEY) || 'null'); return c && c.key ? c : null; } catch (e) { return null; } })();
+  function aiErr(e) {
+    if (e && (e.status === 401 || e.status === 403)) return 'Klíč nefunguje. Zkontroluj ho v Nastavení.';
+    if (e && e.status === 429) return 'Moc dotazů najednou nebo došel kredit. Zkus to za chvíli.';
+    if (e && e.refusal) return 'Claude na tohle neodpověděl.';
+    return navigator.onLine === false ? 'AI vysvětlení potřebuje internet.' : 'Nepodařilo se spojit s Claude. Zkus to znovu.';
+  }
+  // Direct browser call with the user's own key (stored only in this browser).
+  function claude(system, user, schema) {
+    return fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json', 'x-api-key': aiCfg.key, 'anthropic-version': '2026-10-21',
+        'anthropic-dangerous-direct-browser-access': 'true', 'anthropic-beta': 'server-side-fallback-2026-07-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-5-5', max_tokens: 4000, fallbacks: 'default',
+        output_config: { effort: 'low', format: { type: 'json_schema', schema: schema } },
+        system: system, messages: [{ role: 'user', content: user }]
+      })
+    }).then(function (r) {
+      if (!r.ok) { var e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+      return r.json();
+    }).then(function (res) {
+      if (res.stop_reason === 'refusal') { var e2 = new Error('refusal'); e2.refusal = true; throw e2; }
+      var t = (res.content || []).filter(function (b) { return b.type === 'text'; }).map(function (b) { return b.text; }).join('');
+      return JSON.parse(t);
+    });
+  }
+  var AI_SYSTEM = 'Jsi trpělivý učitel němčiny pro Čecha na úrovni A2–B1. Opravuješ jeho německé věty a texty. ' +
+    'Vysvětluj česky, krátce a konkrétně: u každé chyby napiš, co je špatně, správný tvar a pravidlo (pád, koncovka, slovosled, vazba, čas …). ' +
+    'Pády čísluj česky (1. pád = Nominativ, 2. = Genitiv, 3. = Dativ, 4. = Akkusativ). Pokud je věta gramaticky správná a znamená totéž, i když se liší od vzoru, řekni to. ' +
+    'Neopravuj čárky a velká písmena jako hlavní chyby, jen je zmiň v poznámce.';
+  var AI_SCHEMA = {
+    type: 'object', additionalProperties: false, required: ['verdict', 'corrected', 'errors', 'summary'],
+    properties: {
+      verdict: { type: 'string', enum: ['correct', 'minor', 'wrong'] },
+      corrected: { type: 'string' },
+      errors: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['wrong', 'right', 'explanation'],
+        properties: { wrong: { type: 'string' }, right: { type: 'string' }, explanation: { type: 'string' } } } },
+      summary: { type: 'string' }
+    }
+  };
+  function aiSentence(it, given) {
+    var task = it.kind === 'listen' ? 'Diktát. Správný text: ' + it.text
+      : it.kind === 'order' ? 'Seřazení slov do věty. Vzor: ' + it.answer.join(' | ')
+      : 'Překlad z češtiny: „' + it.cz + '“. Vzorové překlady: ' + it.answer.join(' | ');
+    return claude(AI_SYSTEM, task + '\nOdpověď studenta: ' + given + '\nJe odpověď správná? Vysvětli chyby.', AI_SCHEMA);
+  }
+  function aiText(it, text) {
+    return claude(AI_SYSTEM, 'Zadání: ' + it.prompt + (it.tr ? ' (' + it.tr + ')' : '') + '\nText studenta:\n' + text +
+      '\nOprav text, vypiš chyby (max. 12 nejdůležitějších) a v summary zhodnoť, jestli splnil zadání, plus 1–2 rady.', AI_SCHEMA);
+  }
+  function aiResultEl(r, ctx) {
+    var box = h('div', { class: 'ai' }, h('h4', { text: r.verdict === 'correct' ? 'Claude: správně ✓' : r.verdict === 'minor' ? 'Claude: skoro správně' : 'Claude: oprava' }));
+    if (r.corrected) box.append(h('p', {}, h('span', { class: 'lbl', text: 'Opraveno' }), h('b', { text: r.corrected })));
+    if (r.errors && r.errors.length) box.append(h('ul', { class: 'diag' }, r.errors.map(function (e) {
+      return h('li', {}, h('s', { text: e.wrong }), ' → ', h('b', { text: e.right }), ': ' + e.explanation);
+    })));
+    if (r.summary) box.append(h('p', { class: 'txt', text: r.summary }));
+    if (ctx && r.verdict === 'correct' && ctx.it.kind === 'sentence' && ctx.given) {
+      box.append(h('div', { class: 'actions' }, h('button', { class: 'btn ghost', type: 'button', text: 'Uznat jako správné', onclick: function () { acceptOwn(ctx); } })));
+    }
+    return box;
+  }
+
+  function checklist(it, text) {
+    if (!it.check) return null;
+    return h('ul', { class: 'chk' }, it.check.map(function (c) {
+      var n = (text.match(new RegExp(c.re, 'gi')) || []).length;
+      var ok = n >= (c.min || 1);
+      return h('li', { class: ok ? 'y' : 'n', text: (ok ? '✓ ' : '✗ ') + c.label + (ok ? '' : ' (nalezeno ' + n + '×)') });
+    }));
+  }
+  function writeFeedback(it, o) {
+    var text = (o && o.text) || '';
+    var nWords = text ? text.split(/\s+/).length : 0;
+    var box = h('div', { class: 'fb ok' }, h('h3', { text: 'Text je hotový.' }),
+      h('p', { class: 'meta', text: nWords + ' slov' + (it.minWords ? (nWords >= it.minWords ? ' – délka splněná.' : ' – cíl byl ' + it.minWords + '+.') : '') }));
+    var ck = checklist(it, text);
+    if (ck) box.append(h('span', { class: 'lbl', text: 'Kontrola zadání' }), ck);
+    var aiOut = h('div');
+    var row = h('div', { class: 'actions' });
+    if (it.model) {
+      var shown = null;
+      row.append(h('button', { class: 'btn ghost', type: 'button', text: 'Vzorový text', onclick: function () {
+        if (shown) { shown.remove(); shown = null; return; }
+        shown = h('div', { class: 'passage' }, deText(it.model));
+        aiOut.before(shown);
+      } }));
+    }
+    row.append(h('button', { class: 'btn ghost', type: 'button', text: 'Opravit (AI)', onclick: function (e) {
+      if (!aiCfg) { aiOut.replaceChildren(h('p', { class: 'tips', text: 'Opravu textu s vysvětlením chyb umí Claude – vlož API klíč v Nastavení → Oprava textů pomocí AI. Jinak si text zkopíruj na konci kola a nech si ho opravit.' })); return; }
+      var b = e.currentTarget; b.disabled = true;
+      aiOut.replaceChildren(h('p', { class: 'meta', text: 'Claude čte tvůj text…' }));
+      aiText(it, text).then(function (r) {
+        aiOut.replaceChildren(aiResultEl(r, null));
+      }, function (err) { b.disabled = false; aiOut.replaceChildren(h('p', { class: 'err', text: aiErr(err) })); });
+    } }));
+    box.append(row, aiOut);
+    return box;
+  }
+
+  function addLemmaBtn(lemma) {
+    var key = lemmaKey(lemma);
+    var b = h('button', { class: 'mini', type: 'button', text: myWord(key) ? '✓ V mých slovíčkách' : '+ Do mých slovíček' });
+    b.addEventListener('click', function () {
+      if (myWord(key)) return;
+      b.disabled = true;
+      var bare = lemma.replace(/^(der|die|das) /, '');
+      (DICT ? DICT.lookup(bare) : Promise.resolve([])).then(function (list) {
+        var art = (lemma.match(/^(der|die|das) /) || [])[1];
+        var e = list.filter(function (x) { return !art || x.p === 'noun'; })[0];
+        addWord(e || { w: bare, p: art ? 'noun' : '', g: art ? { der: 'm', die: 'f', das: 'n' }[art] : '' });
+        b.textContent = '✓ V mých slovíčkách';
+      }, function () { b.disabled = false; });
+    });
+    return b;
+  }
+
+  function showFeedback(ctx, parts, o, L) {
+    ctx.actions.replaceChildren();
+    ctx.slot.replaceChildren(feedbackEl(ctx.it, parts, o, L, ctx));
+    var last = queue.length === 0;
+    var next = h('button', { class: 'btn primary', type: 'button', text: last ? 'Zobrazit výsledek' : 'Další',
+      onclick: function () { if (SPEAK) SPEAK.stop(); if (last) finish(); else { idx = queue[0]; render(); } } });
+    ctx.actions.append(next);
+    renderProgress();
+    try { next.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
   }
 
   function complete(ctx, parts, o) {
@@ -804,16 +1292,9 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     }
     queue.shift();
     if (!L.done) queue.splice(Math.min(queue.length, ok ? REQUEUE_OK : REQUEUE_BAD), 0, idx);
-    ctx.actions.replaceChildren();
     hidePop();
     if (ctx.it.kind !== 'write' && ctx.trLine && ctx.trLine()) ctx.trLine().remove();
-    ctx.slot.replaceChildren(feedbackEl(ctx.it, parts, o, L));
-    var last = queue.length === 0;
-    var next = h('button', { class: 'btn primary', type: 'button', text: last ? 'Zobrazit výsledek' : 'Další',
-      onclick: function () { if (last) finish(); else { idx = queue[0]; render(); } } });
-    ctx.actions.append(next);
-    renderProgress();
-    try { next.focus(); } catch (e) { /* ignore */ }
+    showFeedback(ctx, parts, o, L);
   }
 
   function finish() {
@@ -981,6 +1462,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     if (!BANK) return;
     Object.keys(prog.wrong).forEach(function (id) { if (!itemIndex[id]) delete prog.wrong[id]; });
     Object.keys(prog.fixed).forEach(function (id) { if (!itemIndex[id] || prog.wrong[id]) delete prog.fixed[id]; });
+    Object.keys(prog.srs).forEach(function (id) { if (!itemIndex[id]) delete prog.srs[id]; });
   }
   function poolOf(st) {
     if (st.refs) {
@@ -1008,7 +1490,10 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     // reset = time of the last "Smazat postup"; a newer reset on any device wins over older data.
     // dev[deviceId] = that device's own counters { seen: {id: n}, days: {day: [n, ok]}, tags: {tag: [ok, bad]} };
     // seen / days / tagList are their sums, so devices practising on the same day add up instead of overwriting.
-    return { v: 1, updated: 0, reset: 0, seen: {}, wrong: {}, fixed: {}, tagList: [], days: {}, done: {}, log: [], recent: [], dev: {} };
+    // srs[id] = [box, dueDay, time]: spaced repetition schedule of each item (newest time wins on merge).
+    // words[key] = my vocabulary { w, cs, p, g, pl, a: added, d: deleted, s: [box, dueDay, time] }.
+    // alt[id] = German answers the learner marked as also correct.  dev[*].sk = per-skill [ok, bad].
+    return { v: 1, updated: 0, reset: 0, seen: {}, wrong: {}, fixed: {}, tagList: [], days: {}, done: {}, log: [], recent: [], dev: {}, srs: {}, words: {}, alt: {} };
   }
   var DEVICE = (function () {
     var id = null;
@@ -1032,7 +1517,9 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     return p;
   }
   function myDev() {
-    return prog.dev[DEVICE] || (prog.dev[DEVICE] = { seen: {}, days: {}, tags: {} });
+    var d = prog.dev[DEVICE] || (prog.dev[DEVICE] = { seen: {}, days: {}, tags: {} });
+    if (!d.sk) d.sk = {};
+    return d;
   }
   function loadLocal() {
     try {
@@ -1054,7 +1541,8 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
   function validProg(o) {
     return isObj(o) && o.v === 1 && isObj(o.seen) && isObj(o.wrong) && Array.isArray(o.tagList) &&
       isObj(o.days) && isObj(o.done) && Array.isArray(o.log) && Array.isArray(o.recent) &&
-      (o.fixed === undefined || isObj(o.fixed));
+      (o.fixed === undefined || isObj(o.fixed)) && (o.srs === undefined || isObj(o.srs)) &&
+      (o.words === undefined || isObj(o.words)) && (o.alt === undefined || isObj(o.alt));
   }
   // Accepts an export file ({ app, prog }) or a bare progress object; returns null if invalid.
   function progFrom(o) {
@@ -1085,7 +1573,9 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
       Object.keys(p.dev).forEach(function (id) {
         var src = p.dev[id] || {}, dst = m.dev[id] || (m.dev[id] = { seen: {}, days: {}, tags: {} });
         Object.keys(src.seen || {}).forEach(function (k) { dst.seen[k] = Math.max(dst.seen[k] || 0, num(src.seen[k])); });
-        ['days', 'tags'].forEach(function (f) {
+        if (src.sk) dst.sk = dst.sk || {};
+        ['days', 'tags', 'sk'].forEach(function (f) {
+          if (!dst[f] && src[f]) dst[f] = {};
           Object.keys(src[f] || {}).forEach(function (k) {
             var v = src[f][k] || [], cur = dst[f][k] || [0, 0];
             dst[f][k] = [Math.max(cur[0], num(v[0])), Math.max(cur[1], num(v[1]))];
@@ -1116,6 +1606,27 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
       var w = Math.max(num(a.wrong[id]), num(b.wrong[id]));
       var f = Math.max(num(a.fixed[id]), num(b.fixed[id]));
       if (w > f) m.wrong[id] = w; else if (f) m.fixed[id] = f;
+    });
+    // spaced repetition: the most recent review of an item wins
+    [a, b].forEach(function (p) {
+      Object.keys(p.srs || {}).forEach(function (id) {
+        var x = p.srs[id], cur = m.srs[id];
+        if (Array.isArray(x) && (!cur || num(x[2]) > num(cur[2]))) m.srs[id] = x.slice(0, 3);
+      });
+      Object.keys(p.alt || {}).forEach(function (id) {
+        var cur = m.alt[id] || (m.alt[id] = []);
+        (p.alt[id] || []).forEach(function (v) { if (cur.indexOf(v) < 0) cur.push(v); });
+      });
+      Object.keys(p.words || {}).forEach(function (k) {
+        var x = p.words[k], cur = m.words[k];
+        if (!isObj(x)) return;
+        if (!cur) { m.words[k] = JSON.parse(JSON.stringify(x)); return; }
+        var y = Object.assign({}, cur, num(x.a) > num(cur.a) ? x : {});
+        y.a = Math.max(num(cur.a), num(x.a)); y.d = Math.max(num(cur.d), num(x.d));
+        var s1 = cur.s || [0, 0, 0], s2 = x.s || [0, 0, 0];
+        y.s = num(s2[2]) > num(s1[2]) ? s2.slice() : s1.slice();
+        m.words[k] = y;
+      });
     });
     m.log = uniqTail(a.log.concat(b.log).sort(function (x, y) { return String(x.t) < String(y.t) ? -1 : String(x.t) > String(y.t) ? 1 : 0; }), 40);
     m.recent = uniqTail(a.recent.concat(b.recent), 40);
@@ -1233,12 +1744,140 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     c[ok ? 0 : 1] += 1;
   }
 
+  /* ---------- spaced repetition ---------- */
+  // box 0 = new / missed, then 1, 2, 4, 8, 16, 35, 70 days between reviews
+  var INTERVALS = [1, 2, 4, 8, 16, 35, 70];
+  function today() { var d = new Date(); return Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5); }
+  function srsNext(rec, ok) {
+    var box = rec ? rec[0] : 0;
+    box = ok ? Math.min(box + 1, INTERVALS.length - 1) : 0;
+    return [box, today() + (ok ? INTERVALS[box] : 1), Date.now()];
+  }
+  function strHash(s) { var x = 0; for (var i = 0; i < s.length; i++) x = (x * 31 + s.charCodeAt(i)) | 0; return Math.abs(x); }
+  // Items practised before the schedule existed: missed ones are due now, the rest spread over the next week.
+  function initSrs() {
+    var t = today(), changed = false;
+    Object.keys(prog.seen).forEach(function (id) {
+      if (prog.srs[id] || !itemIndex[id]) return;
+      prog.srs[id] = prog.wrong[id] ? [0, t, 1] : prog.fixed[id] ? [1, t + 1, 1] : [1, t + 1 + strHash(id) % 6, 1];
+      changed = true;
+    });
+    if (changed) saveLocal();
+  }
+  function skillOfItem(it) {
+    if (!it) return null;
+    if (it._word) return 'slovicka';
+    if (it.kind === 'sentence' || it.kind === 'write') return 'psani';
+    var x = itemIndex[it.id];
+    return x && BANK.skillOf ? BANK.skillOf[x.set] || null : null;
+  }
+  function bumpSkill(sk, ok, n) {
+    if (!sk) return;
+    var d = myDev(), c = d.sk[sk] || (d.sk[sk] = [0, 0]);
+    c[ok ? 0 : 1] += n || 1;
+  }
+  // Week-1 history (before per-skill counters): derive skill counters from the per-topic counters once.
+  function initSkills() {
+    if (!BANK.skillOf || prog.dev.S0) return;
+    var any = Object.keys(prog.dev).some(function (k) { return prog.dev[k].sk && Object.keys(prog.dev[k].sk).length; });
+    if (any || !prog.tagList.length) return;
+    var tagSkill = {};
+    BANK.sets.forEach(function (st) { (st.items || []).forEach(function (it) { if (it.tag && !tagSkill[it.tag]) tagSkill[it.tag] = it.kind === 'sentence' ? 'psani' : BANK.skillOf[st.id]; }); });
+    var sk = {};
+    prog.tagList.forEach(function (r) { var s = tagSkill[r.t]; if (!s) return; var c = sk[s] || (sk[s] = [0, 0]); c[0] += r.ok; c[1] += r.bad; });
+    prog.dev.S0 = { seen: {}, days: {}, tags: {}, sk: sk };
+    saveLocal();
+  }
+  function skillTotals() {
+    var out = {};
+    Object.keys(prog.dev).forEach(function (id) {
+      var sk = prog.dev[id].sk || {};
+      Object.keys(sk).forEach(function (k) { var c = out[k] || (out[k] = [0, 0]); c[0] += num(sk[k][0]); c[1] += num(sk[k][1]); });
+    });
+    return out;
+  }
+  function untrackBad(it, tag) {
+    // the learner accepted their own answer: turn the recorded mistake into a correct answer
+    var me = myDev(), now = Date.now();
+    if (prog.wrong[it.id]) { delete prog.wrong[it.id]; prog.fixed[it.id] = now; }
+    var rec = prog.tagList.filter(function (r) { return r.t === tag; })[0];
+    if (rec && rec.bad > 0) { rec.bad -= 1; rec.ok += 1; }
+    var c = me.tags[tag]; if (c && c[1] > 0) { c[1] -= 1; c[0] += 1; }
+    var sk = skillOfItem(it), s = sk && me.sk[sk]; if (s && s[1] > 0) { s[1] -= 1; s[0] += 1; }
+    var dk = dayKey(); if (prog.days[dk]) prog.days[dk].ok += 1; if (me.days[dk]) me.days[dk][1] += 1;
+    prog.srs[it.id] = srsNext([Math.max(0, ((prog.srs[it.id] || [1])[0]) - 1)], true);
+    prog.recent = prog.recent.filter(function (r) { return r.q !== String(it.cz || '').slice(0, 140); });
+  }
+
+  /* ---------- my words (knowledge base) ---------- */
+  var ART_OF = { m: 'der', f: 'die', n: 'das' };
+  function wordKey(e) { return e.w; }
+  function lemmaKey(lemma) { return String(lemma).replace(/^(der|die|das) /, ''); }
+  function myWord(key) { var r = prog.words[key]; return !!(r && num(r.a) > num(r.d)); }
+  function myWordList() { return Object.keys(prog.words).filter(myWord).map(function (k) { return Object.assign({ key: k }, prog.words[k]); }); }
+  function uniq(a) { return a.filter(function (x, i) { return a.indexOf(x) === i; }); }
+  function czOf(e, n) { return uniq((e.cs || []).map(function (c) { return c[1]; })).slice(0, n || 3).join(', '); }
+  function headword(e) { var art = e.p === 'noun' && e.g ? ART_OF[e.g[0]] : ''; return (art ? art + ' ' : '') + e.w; }
+  function shortDef(e) {
+    var cz = czOf(e, 3);
+    if (cz) return headword(e) + ' = ' + cz;
+    var en = uniq((e.en || []).map(function (c) { return c[1]; })).slice(0, 2).join(', ');
+    var gl = e.gl && e.gl[0] ? e.gl[0][1] : '';
+    return headword(e) + ' – ' + (en ? 'anglicky: ' + en : '') + (en && gl ? '; ' : '') + (gl ? 'význam: ' + gl : '');
+  }
+  function addWord(e) {
+    var key = wordKey(e), now = Date.now(), old = prog.words[key] || {};
+    var cz = czOf(e, 3);
+    var en = uniq((e.en || []).map(function (c) { return c[1]; })).slice(0, 2).join(', ');
+    prog.words[key] = {
+      w: headword(e), p: e.p || '', g: e.g || '', pl: e.pl || '', cs: cz,
+      def: cz ? '' : (en ? 'EN: ' + en : (e.gl && e.gl[0] ? e.gl[0][1] : '')),
+      a: now, d: num(old.d), s: old.s && num(old.d) < num(old.a) ? old.s : [0, today(), now]
+    };
+    touch(); syncSoon(2000); mineCount();
+  }
+  function removeWord(key) { if (prog.words[key]) { prog.words[key].d = Date.now(); touch(); syncSoon(2000); } mineCount(); }
+  function mineCount() { var t = document.getElementById('mine-tab'); if (t) t.textContent = 'Moje slovíčka (' + myWordList().length + ')'; }
+  function wordsDue() { var t = today(); return myWordList().filter(function (w) { return !w.s || w.s[1] <= t; }); }
+  function wordCard(w, others) {
+    var mean = w.cs || w.def || '?';
+    // with enough words, every other review asks for the meaning instead (recognition)
+    if (others.length >= 3 && (num(w.s && w.s[0]) % 2 === 1)) {
+      var opts = shuffle([mean].concat(shuffle(others.map(function (o) { return o.cs || o.def; }).filter(function (x) { return x && x !== mean; })).slice(0, 3)));
+      return { id: 'w:' + w.key, kind: 'choice', _word: w.key, _g: 'slov', tag: 'Moje slovíčka', q: 'Co znamená „' + w.w + '“?', options: opts, answer: opts.indexOf(mean),
+        short: w.w + ' = ' + mean + '.', explain: w.w + (w.pl ? ', die ' + w.pl : '') + ' = ' + mean + '.' };
+    }
+    var bare = w.w.replace(/^(der|die|das) /, '');
+    return { id: 'w:' + w.key, kind: 'fill', _word: w.key, _g: 'slov', tag: 'Moje slovíčka', lemma: w.w,
+      prompt: (w.cs ? w.cs : '(' + w.def + ')') + ' → ___' + (w.p === 'noun' ? ' (člen + slovo)' : ''),
+      answer: [w.w], hint: 'Začíná na „' + bare.charAt(0) + '“' + (w.p === 'noun' && w.g ? ', ' + { m: 'mužský', f: 'ženský', n: 'střední' }[w.g[0]] + ' rod' : ''),
+      short: w.w + (w.pl ? ', die ' + w.pl : '') + '.', explain: w.w + (w.pl ? ', die ' + w.pl : '') + ' = ' + mean + '.\nSlovo z tvého slovníku.' };
+  }
+  function trackWord(it, ok) {
+    var r = prog.words[it._word];
+    if (r) r.s = srsNext(r.s, ok);
+    if (!retryMode) {
+      bumpSkill('slovicka', ok);
+      var dk = dayKey(), dd = prog.days[dk] || (prog.days[dk] = { n: 0, ok: 0 });
+      dd.n += 1; if (ok) dd.ok += 1;
+      var me = myDev(), md = me.days[dk] || (me.days[dk] = [0, 0]);
+      md[0] += 1; if (ok) md[1] += 1;
+    }
+    touch();
+  }
+
   function track(it, parts, label) {
+    if (it && it._word) { trackWord(it, parts.every(function (p) { return p.correct; })); return; }
     if (!it || !it.id || !itemIndex[it.id]) return;
     var ok = parts.length ? parts.every(function (p) { return p.correct; }) : true;
     if (ok) { if (prog.wrong[it.id]) { delete prog.wrong[it.id]; prog.fixed[it.id] = Date.now(); } }
     else { prog.wrong[it.id] = Date.now(); delete prog.fixed[it.id]; }
+    if (parts.length) prog.srs[it.id] = srsNext(prog.srs[it.id], ok);
     if (!retryMode) {
+      if (parts.length) {
+        if (it.kind === 'ctest') bumpSkill(skillOfItem(it), true, parts.filter(function (p) { return p.correct; }).length), bumpSkill(skillOfItem(it), false, parts.filter(function (p) { return !p.correct; }).length);
+        else bumpSkill(skillOfItem(it), ok);
+      } else if (it.kind === 'write') bumpSkill('psani', true, 3);
       prog.seen[it.id] = (prog.seen[it.id] || 0) + 1;
       parts.forEach(function (p) { bumpTag(p.tag || it.tag, p.correct); });
       var dk = dayKey();
@@ -1267,13 +1906,69 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     return out;
   }
 
+  function dueItems() {
+    var t = today();
+    return Object.keys(prog.srs).filter(function (id) { return itemIndex[id] && prog.srs[id][1] <= t; })
+      .sort(function (a, b) { return prog.srs[a][1] - prog.srs[b][1] || prog.srs[a][0] - prog.srs[b][0]; })
+      .map(function (id) { return itemIndex[id].it; });
+  }
+  function weakTags() {
+    return prog.tagList.filter(function (r) { return r.ok + r.bad >= 3 && r.bad / (r.ok + r.bad) >= 0.25; })
+      .sort(function (a, b) { return b.bad / (b.ok + b.bad) - a.bad / (a.ok + a.bad); });
+  }
+  function itemsWhere(fn) {
+    var out = [];
+    Object.keys(itemIndex).forEach(function (id) { var x = itemIndex[id]; if (fn(x.it, x.set)) out.push(x.it); });
+    return out;
+  }
+  // the learner hasn't reached these lessons yet: keep them out of weak-spot drills
+  function reachedSets() {
+    var r = {};
+    BANK.plan.forEach(function (d, di) { if (di <= firstOpenDay()) d.blocks.forEach(function (b) { var st = setById[b.set]; if (st) poolOf(st).forEach(function (it) { r[itemIndex[it.id] ? itemIndex[it.id].set : b.set] = 1; }); }); });
+    Object.keys(prog.seen).forEach(function (id) { if (itemIndex[id]) r[itemIndex[id].set] = 1; });
+    return r;
+  }
+  function specialItems(setId, n) {
+    if (setId === '__wrong') {
+      return { title: 'Opakování chyb', items: shuffle(Object.keys(prog.wrong).map(function (id) { return itemIndex[id]; }).filter(Boolean).map(function (x) { return x.it; })).slice(0, n) };
+    }
+    if (setId === '__due') {
+      var words = wordsDue(), all = myWordList();
+      var nw = Math.min(words.length, Math.max(n - dueItems().length, Math.ceil(n / 3)));
+      var gi = dueItems().slice(0, n - nw);
+      return { title: 'Dnešní opakování', items: shuffle(gi.concat(shuffle(words).slice(0, nw).map(function (w) { return wordCard(w, all.filter(function (o) { return o.key !== w.key; })); }))) };
+    }
+    if (setId === '__words') {
+      var aw = myWordList(), due = wordsDue();
+      var rest = shuffle(aw.filter(function (w) { return due.indexOf(w) < 0; }));
+      var pick = due.concat(rest).slice(0, n);
+      return { title: 'Moje slovíčka', items: shuffle(pick.map(function (w) { return wordCard(w, aw.filter(function (o) { return o.key !== w.key; })); })) };
+    }
+    if (setId === '__weak') {
+      var tags = {}, reached = reachedSets();
+      weakTags().slice(0, 6).forEach(function (r) { tags[r.t] = 1; });
+      var pool = itemsWhere(function (it, set) { return tags[it.tag] && reached[set]; });
+      var wrongFirst = pool.filter(function (it) { return prog.wrong[it.id]; });
+      return { title: 'Slabá místa', items: shuffle(shuffle(wrongFirst).concat(pickItems(pool.filter(function (it) { return !prog.wrong[it.id]; }), n)).slice(0, n)) };
+    }
+    if (setId.indexOf('__tag:') === 0) {
+      var tg = setId.slice(6);
+      return { title: tg, items: shuffle(pickItems(itemsWhere(function (it) { return it.tag === tg; }), n)) };
+    }
+    if (setId.indexOf('__skill:') === 0) {
+      var sk = setId.slice(8), reached2 = reachedSets();
+      var sp = itemsWhere(function (it, set) { return BANK.skillOf[set] === sk && reached2[set] && it.kind !== 'write' && it.kind !== 'ctest'; });
+      var skill = (BANK.skills || []).filter(function (x) { return x.id === sk; })[0];
+      return { title: 'Trénink: ' + (skill ? skill.name : sk), items: shuffle(pickItems(sp, n)) };
+    }
+    return null;
+  }
+
   function startSession(setId, n, blockKey) {
     var items, title, mode;
-    if (setId === '__wrong') {
-      items = Object.keys(prog.wrong).map(function (id) { return itemIndex[id]; }).filter(Boolean)
-        .map(function (x) { return x.it; });
-      items = shuffle(items).slice(0, n);
-      title = 'Opakování chyb'; mode = 'Opakování';
+    var sp = setId.indexOf('__') === 0 ? specialItems(setId, n) : null;
+    if (sp) {
+      items = sp.items; title = sp.title; mode = 'Opakování';
     } else {
       var st = setById[setId];
       if (!st) return;
@@ -1311,9 +2006,21 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     var same = cur ? after.filter(function (b) { return b.day === cur.day; })[0] : null;
     return same || after[0];
   }
-  function startBlock(b) { startSession(b.set, b.n, b.key); }
+  function startBlock(b) {
+    // a review block with nothing to review (no mistakes, nothing due) simply counts as done
+    if (b.set.indexOf('__') === 0 && !setCount(b.set, b.n)) {
+      prog.done[b.key] = dayKey(); touch(); syncSoon(0);
+      var nb = nextBlock(b.key);
+      if (nb && phase !== 'hub') { startBlock(nb); return; }
+      phase = 'hub'; render(); return;
+    }
+    startSession(b.set, b.n, b.key);
+  }
   function setCount(setId, n) {
     if (setId === '__wrong') return Object.keys(prog.wrong).length;
+    if (setId === '__due') return Math.min(n, dueItems().length + wordsDue().length);
+    if (setId === '__words') return Math.min(n, myWordList().length);
+    if (setId === '__weak') return weakTags().length ? n : 0;
     var st = setById[setId];
     if (!st) return 0;
     return st.all ? poolOf(st).length : Math.min(n || st.n, poolOf(st).length);
@@ -1395,7 +2102,147 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
         h('p', { text: 'Slabá slovesa: kmen + -te. Po -t/-d se vkládá -e- (arbeitete). Silná slovesa mění kmen (gehen → ging) a v 1. a 3. os. j. č. nemají koncovku. Modální slovesa ztrácí přehlásku: können → konnte.' }),
         h('h3', { text: 'Perfekt: haben, nebo sein?' }),
         h('p', { text: 'sein: pohyb z místa na místo a změna stavu (gehen, fahren, kommen, aufstehen) + bleiben, sein. Ostatní haben.' })
+      ]),
+      grp('Slovosled a spojky', [
+        h('h3', { text: 'Hlavní věta' }), h('p', { text: 'Časované sloveso na 2. místě: Heute gehe ich … Druhá část (infinitiv, příčestí, předpona) na konci.' }),
+        h('h3', { text: 'Nulté místo (bez inverze)' }), h('p', { text: 'und, aber, oder, denn, sondern' }),
+        h('h3', { text: '1. místo (inverze)' }), h('p', { text: 'deshalb, trotzdem, dann, danach, sonst, außerdem, also, allerdings' }),
+        h('h3', { text: 'Vedlejší věta (sloveso na konci)' }), h('p', { text: 'weil, dass, ob, wenn, als, obwohl, damit, bevor, nachdem, während, bis, seit, sobald + tázací slova a vztažná zájmena' }),
+        h('h3', { text: 'als × wenn' }), h('p', { text: 'als = jednou v minulosti. wenn = opakovaně, přítomnost, budoucnost.' })
+      ]),
+      grp('Vztažná zájmena', [
+        tbl(HEAD, rows([['der', 'die', 'das', 'die'], ['dessen', 'deren', 'dessen', 'deren'], ['dem', 'der', 'dem', 'denen'], ['den', 'die', 'das', 'die']])),
+        h('p', { text: 'Rod podle podstatného jména, pád podle role ve vztažné větě. Po alles, etwas, nichts → was.' })
+      ]),
+      grp('Konjunktiv II a pasivum', [
+        h('h3', { text: 'Konjunktiv II („by“)' }), h('p', { text: 'wäre, hätte, könnte, müsste, sollte, würde + infinitiv. Minulost: hätte gemacht / wäre gekommen.' }),
+        h('h3', { text: 'Pasivum' }), h('p', { text: 'wird gemacht · wurde gemacht · ist gemacht worden · muss gemacht werden. Původce: von + 3. pád.' }),
+        h('h3', { text: 'werden' }), h('p', { text: 'werden + adj. = stát se · werden + infinitiv = budoucnost · werden + Partizip II = pasivum.' })
       ]));
+  }
+
+  function dayIdxOfWeek(w) { var out = []; BANK.plan.forEach(function (d, i) { if ((d.week || 1) === w) out.push(i); }); return out; }
+  function theoryKey(d) { return 'd' + d.day + 't'; }
+  function streak() {
+    var n = 0, d = new Date();
+    if (!(prog.days[dayKey(d)] && prog.days[dayKey(d)].n)) d.setDate(d.getDate() - 1);
+    while (prog.days[dayKey(d)] && prog.days[dayKey(d)].n > 0) { n += 1; d.setDate(d.getDate() - 1); }
+    return n;
+  }
+  var theoryDay = 0;
+  function openTheory(di) { theoryDay = di; phase = 'theory'; render(); try { window.scrollTo(0, 0); } catch (e) { /* ignore */ } }
+  function dayBlocks(di) {
+    var d = BANK.plan[di];
+    return d.blocks.map(function (b, bi) { return { day: di, key: 'd' + d.day + 'b' + bi, set: b.set, n: b.n, label: b.label }; });
+  }
+  function startDay(di) {
+    var d = BANK.plan[di];
+    if (d.theory && !prog.done[theoryKey(d)]) { openTheory(di); return; }
+    var open = dayBlocks(di).filter(function (b) { return !prog.done[b.key]; });
+    if (open.length) startBlock(open[0]);
+  }
+
+  function theoryBlocks(list) {
+    return list.map(function (b) {
+      if (b.p) return h('p', {}, b.p);
+      if (b.h) return h('h3', { text: b.h });
+      if (b.tip) return h('p', { class: 'tip', text: b.tip });
+      if (b.tbl) return tbl(b.tbl.head, b.tbl.rows);
+      if (b.ex) return h('ul', { class: 'exs' }, b.ex.map(function (x) {
+        return h('li', {}, h('span', { class: 'de' }, deText(x[0]), SPEAK && SPEAK.supported() ? ' ' : null,
+          SPEAK && SPEAK.supported() ? h('button', { class: 'say', type: 'button', text: '🔊', 'aria-label': 'Přečíst', onclick: function () { SPEAK.say(x[0]); } }) : null),
+          h('span', { class: 'cz', text: x[1] }));
+      }));
+      return null;
+    });
+  }
+  function theoryView() {
+    var d = BANK.plan[theoryDay];
+    var go = h('button', { class: 'btn primary', type: 'button', text: 'Začít cvičení', onclick: function () {
+      prog.done[theoryKey(d)] = dayKey(); touch(); syncSoon(0);
+      var open = dayBlocks(theoryDay).filter(function (b) { return !prog.done[b.key]; });
+      if (open.length) startBlock(open[0]); else goHub();
+    } });
+    return h('section', { class: 'card theory' },
+      h('h2', { text: 'Týden ' + (d.week || 1) + ' · Den ' + d.day + ' · Výklad' }),
+      h('h1', { class: 'title', text: d.title }),
+      theoryBlocks(d.theory || []),
+      h('p', { class: 'meta', text: 'Výklad najdeš kdykoli znovu v přehledu u lekce.' }),
+      h('div', { class: 'actions' }, go));
+  }
+
+  /* ---------- character sheet ---------- */
+  var TITLES = ['Nováček', 'Začátečník', 'Učeň', 'Tovaryš', 'Zkušený', 'Pokročilý', 'Znalec', 'Expert', 'Mistr', 'Velmistr', 'Legenda'];
+  function levelOf(xp, scale) {
+    scale = scale || 1;
+    var n = 1;
+    while (50 * scale * (n + 1) * n <= xp && n < 11) n += 1;
+    var lo = 50 * scale * n * (n - 1), hi = 50 * scale * (n + 1) * n;
+    return { n: n, title: TITLES[n - 1], pct: n >= 11 ? 100 : Math.round(100 * (xp - lo) / (hi - lo)), toNext: n >= 11 ? 0 : hi - xp };
+  }
+  function skillStats() {
+    var tot = skillTotals(), pool = {}, mastered = {}, t = today();
+    Object.keys(itemIndex).forEach(function (id) {
+      var x = itemIndex[id], sk = x.it.kind === 'sentence' ? 'psani' : BANK.skillOf[x.set];
+      if (!sk) return;
+      pool[sk] = (pool[sk] || 0) + 1;
+      var r = prog.srs[id];
+      if (r && r[0] >= 3) mastered[sk] = (mastered[sk] || 0) + 1;
+    });
+    var words = myWordList();
+    pool.slovicka = (pool.slovicka || 0) + words.length;
+    mastered.slovicka = (mastered.slovicka || 0) + words.filter(function (w) { return w.s && w.s[0] >= 3; }).length;
+    // weakest topic per skill
+    var tagSkill = {};
+    BANK.sets.forEach(function (st) { (st.items || []).forEach(function (it) { if (it.tag && !tagSkill[it.tag]) tagSkill[it.tag] = it.kind === 'sentence' ? 'psani' : BANK.skillOf[st.id]; }); });
+    var weakest = {};
+    weakTags().forEach(function (r) { var s = tagSkill[r.t]; if (s && !weakest[s]) weakest[s] = r; });
+    return (BANK.skills || []).map(function (s) {
+      var c = tot[s.id] || [0, 0];
+      var xp = c[0] * 10 + c[1] * 3 + (mastered[s.id] || 0) * 15;
+      return { s: s, ok: c[0], bad: c[1], xp: xp, lv: levelOf(xp), pool: pool[s.id] || 0, mastered: mastered[s.id] || 0, weak: weakest[s.id] || null };
+    });
+  }
+  function cefr() {
+    var daysDone = 0;
+    BANK.plan.forEach(function (d, i) { if (dayDone(i)) daysDone += 1; });
+    var st = statsOf();
+    var steps = ['A2', 'A2', 'A2+', 'A2+', 'B1−', 'B1−', 'B1'];
+    var k = Math.min(steps.length - 1, Math.floor(daysDone / 7));
+    if (st.pct && st.pct < 60 && k > 0) k -= 1;
+    return { label: steps[k], days: daysDone };
+  }
+  function sheetView() {
+    var stats = skillStats();
+    var total = stats.reduce(function (a, x) { return a + x.xp; }, 0);
+    var lv = levelOf(total, 6);
+    var c = cefr(), st = statsOf();
+    var masteredAll = Object.keys(prog.srs).filter(function (id) { return prog.srs[id][0] >= 3; }).length;
+    var hero = h('section', { class: 'card' },
+      h('div', { class: 'hero' }, h('div', { class: 'avatar', 'aria-hidden': 'true', text: String(lv.n) }),
+        h('div', {}, h('h1', { class: 'title', text: 'Karta postavy' }),
+          h('p', { class: 'lvl', text: 'Úroveň ' + lv.n + ' · ' + lv.title + ' · ' + total + ' XP' }))),
+      h('div', { class: 'wbar', title: lv.toNext + ' XP do další úrovně' }, h('span', { style: 'width:' + lv.pct + '%' })),
+      h('p', { class: 'meta', text: lv.toNext ? 'Do úrovně ' + (lv.n + 1) + ' chybí ' + lv.toNext + ' XP.' : 'Nejvyšší úroveň.' }),
+      h('div', { class: 'stats' },
+        h('div', { class: 'stat' }, h('b', { text: c.label }), h('span', { text: 'odhad úrovně' })),
+        h('div', { class: 'stat' }, h('b', { text: String(streak()) }), h('span', { text: 'dní v řadě' })),
+        h('div', { class: 'stat' }, h('b', { text: String(masteredAll) }), h('span', { text: 'zvládnutých úkolů' })),
+        h('div', { class: 'stat' }, h('b', { text: String(myWordList().length) }), h('span', { text: 'mých slovíček' })),
+        h('div', { class: 'stat' }, h('b', { text: st.n ? st.pct + ' %' : '–' }), h('span', { text: 'úspěšnost' }))),
+      h('p', { class: 'sub', text: 'XP: 10 za správnou odpověď, 3 za snahu i při chybě, 15 za každý zvládnutý úkol (3× po sobě správně v opakování). Odhad úrovně vychází ze splněných dnů kurzu (' + c.days + ' / ' + BANK.plan.length + ') a úspěšnosti.' }));
+    var list = h('ul', { class: 'skills' }, stats.map(function (x) {
+      var tried = x.ok + x.bad;
+      var acc = tried ? Math.round(100 * x.ok / tried) : null;
+      var sub = tried ? 'úspěšnost ' + acc + ' % · zvládnuto ' + x.mastered + ' z ' + x.pool + (x.weak ? ' · slabé místo: ' + x.weak.t : '') : 'zatím nezačato · ' + x.pool + ' úkolů čeká';
+      return h('li', { class: 'skill' + (tried ? '' : ' locked') },
+        h('div', { class: 'top' }, h('span', { class: 'ic', 'aria-hidden': 'true', text: x.s.icon }), h('span', { class: 'nm', text: x.s.name }),
+          h('span', { class: 'lv', text: 'Úr. ' + x.lv.n }),
+          tried && x.s.id !== 'psani' ? h('button', { class: 'mini', type: 'button', text: 'Trénovat', onclick: function () { startSession(x.s.id === 'slovicka' && myWordList().length ? '__words' : '__skill:' + x.s.id, 12, null); } }) : null),
+        h('div', { class: 'bar', role: 'progressbar', 'aria-label': x.s.name, 'aria-valuenow': String(x.lv.pct), 'aria-valuemin': '0', 'aria-valuemax': '100' }, h('span', { style: 'width:' + x.lv.pct + '%' })),
+        h('p', { class: 'sub2', text: x.lv.title + ' · ' + x.xp + ' XP · ' + sub }));
+    }));
+    return h('div', { style: 'display:grid;gap:14px' }, hero, h('section', { class: 'card' }, h('h2', { text: 'Dovednosti' }), list));
   }
 
   function hubView() {
@@ -1408,59 +2255,98 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
 
     var st = statsOf();
     var head = h('section', { class: 'card' },
-      h('h1', { class: 'title', text: 'Týden němčiny' }),
-      h('p', { class: 'sub', text: 'Sedm dní krátkých bloků. Všechna cvičení jsou přímo tady. Na německé slovo klepni a uvidíš překlad, celou větu přeloží tlačítko Překlad. Co spleteš, vrátí se, dokud to dvakrát po sobě nedáš správně – blok je hotový, až zvládneš všechno.' }),
+      h('h1', { class: 'title', text: 'Kurz němčiny' }),
+      h('p', { class: 'sub', text: 'Lekce po dnech, každý týden nové téma a na konci opakování. Na německé slovo klepni – uvidíš překlad a můžeš si ho uložit do svých slovíček. Co spleteš, vrátí se, dokud to dvakrát po sobě nedáš správně, a pak znovu v opakování za pár dní.' }),
       h('div', { class: 'stats' },
         h('div', { class: 'stat' }, h('b', { text: String(st.n) }), h('span', { text: 'splněných úkolů' })),
         h('div', { class: 'stat' }, h('b', { text: st.n ? st.pct + ' %' : '–' }), h('span', { text: 'úspěšnost' })),
-        h('div', { class: 'stat' }, h('b', { text: st.active + ' / 7' }), h('span', { text: 'dní za týden' }))));
+        h('div', { class: 'stat' }, h('b', { text: st.active + ' / 7' }), h('span', { text: 'dní za týden' })),
+        h('div', { class: 'stat' }, h('b', { text: String(streak()) }), h('span', { text: 'dní v řadě' }))));
     wrap.append(head);
 
-    // plan
-    var tabs = h('div', { class: 'tabs', role: 'group', 'aria-label': 'Dny týdne' }, BANK.plan.map(function (d, i) {
+    // today: one obvious next step
+    var nextDi = firstOpenDay(), nd = BANK.plan[nextDi];
+    var allDone = BANK.plan.every(function (d, i) { return dayDone(i); });
+    var started = dayBlocks(nextDi).some(function (b) { return prog.done[b.key]; }) || (nd.theory && prog.done[theoryKey(nd)]);
+    var nDue = dueItems().length + wordsDue().length;
+    var today1 = h('section', { class: 'card today' }, h('h2', { text: 'Dnes' }));
+    if (!allDone) {
+      today1.append(h('p', { class: 'lead' }, h('b', { text: 'Týden ' + (nd.week || 1) + ', den ' + nd.day + ': ' }), nd.title),
+        h('div', { class: 'actions' }, h('button', { class: 'btn primary', type: 'button', text: started ? 'Pokračovat' : 'Začít den ' + nd.day,
+          onclick: function () { startDay(nextDi); } })));
+    } else {
+      today1.append(h('p', { class: 'lead', text: 'Celý kurz máš hotový. Teď drž formu opakováním.' }));
+    }
+    today1.append(h('button', { class: 'row', type: 'button', disabled: nDue === 0, onclick: function () { startSession('__due', 20, null); } },
+      h('span', {}, 'Dnešní opakování', h('small', { text: nDue ? nDue + ' ' + plural(nDue) + ' je na řadě (opakování v rozestupech 1, 2, 4, 8 … dní)' : 'na dnešek nic – zítra zase' })),
+      h('span', { class: 'go', text: nDue ? 'Spustit' : '✓' })),
+      h('div', { class: 'actions' },
+        h('button', { class: 'btn ghost', type: 'button', text: 'Karta postavy', onclick: function () { phase = 'sheet'; render(); try { window.scrollTo(0, 0); } catch (e) { /* ignore */ } } }),
+        h('button', { class: 'btn ghost', type: 'button', text: 'Slovník', onclick: function () { openDict(''); } })));
+    wrap.append(today1);
+
+    // course: weeks → days → blocks
+    var day = BANK.plan[hubDay], wk = day.week || 1;
+    var wtabs = h('div', { class: 'wtabs', role: 'group', 'aria-label': 'Týdny' }, (BANK.weeks || [{ n: 1 }]).map(function (w) {
+      var di = dayIdxOfWeek(w.n), done = di.every(dayDone);
+      return h('button', { class: 'wtab' + (done ? ' done' : ''), type: 'button', text: 'Týden ' + w.n + (done ? ' ✓' : ''),
+        'aria-pressed': w.n === wk ? 'true' : 'false',
+        onclick: function () { var open = di.filter(function (i) { return !dayDone(i); }); hubDay = open.length ? open[0] : di[0]; render(); } });
+    }));
+    var wmeta = (BANK.weeks || []).filter(function (w) { return w.n === wk; })[0] || {};
+    var wdays = dayIdxOfWeek(wk), wdone = wdays.filter(dayDone).length;
+    var tabs = h('div', { class: 'tabs', role: 'group', 'aria-label': 'Dny týdne' }, wdays.map(function (i) {
+      var d = BANK.plan[i];
       return h('button', { class: 'tab' + (dayDone(i) ? ' done' : ''), type: 'button', text: String(d.day),
         'aria-pressed': i === hubDay ? 'true' : 'false', 'aria-label': 'Den ' + d.day,
         onclick: function () { hubDay = i; render(); } });
     }));
-    var day = BANK.plan[hubDay];
-    var open = day.blocks.map(function (b, bi) {
-      return { day: hubDay, key: 'd' + day.day + 'b' + bi, set: b.set, n: b.n, label: b.label };
-    }).filter(function (b) { return !prog.done[b.key]; });
-    var rows = h('ul', { class: 'rows' }, day.blocks.map(function (b, bi) {
+    var rowsList = [];
+    if (day.theory) {
+      var tdone = !!prog.done[theoryKey(day)];
+      rowsList.push(h('li', {}, h('button', { class: 'row theory-row' + (tdone ? ' done' : ''), type: 'button', onclick: function () { openTheory(hubDay); } },
+        h('span', {}, 'Výklad', h('small', { text: 'pravidla a příklady k lekci' })), h('span', { class: 'go', text: tdone ? '✓ přečteno' : 'Číst' }))));
+    }
+    day.blocks.forEach(function (b, bi) {
       var key = 'd' + day.day + 'b' + bi;
       var done = !!prog.done[key];
       var cnt = setCount(b.set, b.n);
-      var dis = b.set === '__wrong' && cnt === 0;
-      return h('li', {}, h('button', { class: 'row' + (done ? ' done' : ''), type: 'button', disabled: dis,
+      var stx = setById[b.set] || {};
+      var small = b.set === '__wrong' ? (cnt ? 'až ' + Math.min(b.n, cnt) + ' úkolů ze tvých chyb' : 'zatím žádné chyby – blok se odškrtne sám')
+        : b.set === '__due' ? (cnt ? cnt + ' ' + plural(cnt) + ' na řadě' : 'nic na řadě – blok se odškrtne sám')
+        : b.set === '__weak' ? (cnt ? 'úkoly z témat, kde chybuješ nejvíc' : 'zatím žádná slabá místa')
+        : stx.kindLabel === 'Psaní' ? 'delší text' : stx.group === 'poslech' ? cnt + ' ' + plural(cnt) + ' · poslech' : cnt + ' ' + plural(cnt);
+      rowsList.push(h('li', {}, h('button', { class: 'row' + (done ? ' done' : ''), type: 'button',
         onclick: function () { startBlock({ set: b.set, n: b.n, key: key, label: b.label }); } },
-        h('span', {}, b.label, h('small', { text: b.set === '__wrong' ? (cnt ? 'až ' + Math.min(b.n, cnt) + ' úkolů ze tvých chyb' : 'zatím žádné chyby')
-          : (BANK.sets.filter(function (x) { return x.id === b.set; })[0] || {}).kindLabel === 'Psaní' ? 'krátký text' : cnt + ' ' + plural(cnt) })),
-        h('span', { class: 'go', text: done ? '✓ hotovo' : 'Spustit' })));
-    }));
+        h('span', {}, b.label, h('small', { text: small })),
+        h('span', { class: 'go', text: done ? '✓ hotovo' : 'Spustit' }))));
+    });
     var planCard = h('section', { class: 'card' },
-      h('h2', { text: 'Den ' + day.day + (dayDone(hubDay) ? ' · hotovo' : '') }),
-      h('h1', { class: 'title', text: day.title }), tabs, rows);
-    if (open.length) {
-      planCard.append(h('div', { class: 'actions' }, h('button', { class: 'btn primary', type: 'button',
-        text: open.length === day.blocks.length ? 'Začít den ' + day.day : 'Pokračovat',
-        onclick: function () { startBlock(open[0]); } })));
-    }
+      h('h2', { text: 'Kurz · týden ' + wk + (wmeta.title ? ': ' + wmeta.title : '') }),
+      wtabs,
+      h('div', { class: 'wbar', title: wdone + ' / ' + wdays.length + ' dní' }, h('span', { style: 'width:' + Math.round(100 * wdone / wdays.length) + '%' })),
+      tabs,
+      h('h1', { class: 'title', text: 'Den ' + day.day + ': ' + day.title + (dayDone(hubDay) ? ' ✓' : '') }),
+      h('ul', { class: 'rows' }, rowsList));
     wrap.append(planCard);
 
-    // weak topics
-    var weak = prog.tagList.filter(function (r) { return r.ok + r.bad >= 4 && r.bad / (r.ok + r.bad) >= 0.25; })
-      .sort(function (a, b) { return b.bad / (b.ok + b.bad) - a.bad / (a.ok + a.bad); }).slice(0, 4);
-    var nWrong = Object.keys(prog.wrong).length;
+    // review
+    var weak = weakTags().slice(0, 5);
+    var nWrong = Object.keys(prog.wrong).length, nWords = myWordList().length, nWDue = wordsDue().length;
     var rev = h('section', { class: 'card' },
       h('h2', { text: 'Opakování' }),
-      h('button', { class: 'row', type: 'button', disabled: nWrong === 0,
-        onclick: function () { startSession('__wrong', 15, null); } },
-        h('span', {}, 'Moje chyby', h('small', { text: nWrong ? nWrong + ' úkolů čeká na opravu' : 'zatím žádné chyby' })),
-        h('span', { class: 'go', text: 'Spustit' })));
+      h('ul', { class: 'rows' },
+        h('li', {}, h('button', { class: 'row', type: 'button', disabled: nWrong === 0, onclick: function () { startSession('__wrong', 15, null); } },
+          h('span', {}, 'Moje chyby', h('small', { text: nWrong ? nWrong + ' úkolů čeká na opravu' : 'zatím žádné chyby' })), h('span', { class: 'go', text: 'Spustit' }))),
+        h('li', {}, h('button', { class: 'row', type: 'button', disabled: !weak.length, onclick: function () { startSession('__weak', 12, null); } },
+          h('span', {}, 'Slabá místa', h('small', { text: weak.length ? 'témata s nejvíc chybami' : 'zatím žádná' })), h('span', { class: 'go', text: 'Spustit' }))),
+        h('li', {}, h('button', { class: 'row', type: 'button', disabled: nWords === 0, onclick: function () { startSession('__words', 15, null); } },
+          h('span', {}, 'Moje slovíčka', h('small', { text: nWords ? nWords + ' slov' + (nWDue ? ' · ' + nWDue + ' na řadě' : '') : 'přidej si slova ze slovníku nebo klepnutím na slovo' })), h('span', { class: 'go', text: 'Spustit' })))));
     if (weak.length) {
-      rev.append(h('p', { class: 'sub', text: 'Nejčastější chyby podle témat' }),
+      rev.append(h('p', { class: 'sub', text: 'Nejčastější chyby podle témat – klepnutím procvičíš:' }),
         h('div', { class: 'weak' }, weak.map(function (r) {
-          return h('span', { class: 'chip', text: r.t + ' · ' + Math.round(100 * r.bad / (r.ok + r.bad)) + ' % chyb' });
+          return h('button', { class: 'chip', type: 'button', style: 'cursor:pointer', text: r.t + ' · ' + Math.round(100 * r.bad / (r.ok + r.bad)) + ' % chyb',
+            onclick: function () { startSession('__tag:' + r.t, 10, null); } });
         })));
     }
     wrap.append(rev);
@@ -1505,13 +2391,231 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     wrap.append(h('section', { class: 'card' },
       h('details', { id: 'settings', open: settingsOpen ? true : null,
         ontoggle: function (e) { settingsOpen = e.target.open; } },
-        h('summary', { text: 'Nastavení a ruční vložení cvičení' }),
-        syncBlock(), backupBlock(),
+        h('summary', { text: 'Nastavení: vzhled, synchronizace, hlas, AI' }),
+        themeBlock(), syncBlock(), backupBlock(), voiceBlock(), aiBlock(),
         h('div', { class: 'actions', style: 'margin:12px 0' }, resetBtn), manual)));
     return wrap;
   }
 
+  /* ---------- dictionary overlay ---------- */
+  var ovEl = document.getElementById('overlay');
+  var dictTab = 'search', dictQ = '', dictTimer = null, dictSeq = 0;
+  var POS = { noun: 'podstatné jméno', verb: 'sloveso', adj: 'přídavné jméno', adv: 'příslovce', prep: 'předložka', conj: 'spojka', pron: 'zájmeno',
+    intj: 'citoslovce', num: 'číslovka', particle: 'částice', phrase: 'slovní spojení', abbrev: 'zkratka', det: 'člen / determinant', article: 'člen' };
+  var GEN = { m: 'mužský rod', f: 'ženský rod', n: 'střední rod' };
+  function openDict(q) {
+    if (!DICT) return;
+    if (typeof q === 'string' && q) { dictQ = q; dictTab = 'search'; }
+    hidePop();
+    ovEl.hidden = false;
+    document.body.style.overflow = 'hidden';
+    renderDict();
+  }
+  function closeDict() {
+    ovEl.hidden = true;
+    document.body.style.overflow = '';
+    if (SPEAK) SPEAK.stop();
+    if (phase === 'hub' || phase === 'sheet') render();
+  }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !ovEl.hidden) closeDict(); });
+
+  function gramLine(e) {
+    var bits = [POS[e.p] || e.t || e.p];
+    if (e.t && POS[e.p]) bits[0] += ' (' + e.t.toLowerCase() + ')';
+    if (e.p === 'noun') {
+      if (e.g) bits.push(e.g.split('').map(function (g) { return GEN[g]; }).join(' / '));
+      if (e.pl) bits.push('mn. č. die ' + e.pl);
+      if (e.gen) bits.push('2. pád ' + (e.g === 'f' ? 'der ' : 'des ') + e.gen);
+    } else if (e.p === 'verb') {
+      var f = [e.pr && 'er ' + e.pr, e.pt && e.pt, e.p2 && ((e.aux || 'haben').split('/').map(function (a) { return a === 'sein' ? 'ist' : 'hat'; }).join('/') + ' ' + e.p2)].filter(Boolean);
+      if (f.length) bits.push(f.join(' – '));
+    } else if (e.p === 'adj' && (e.cmp || e.sup)) bits.push([e.cmp, e.sup && 'am ' + e.sup].filter(Boolean).join(' – '));
+    return bits.join(' · ');
+  }
+  function entryEl(e) {
+    var key = wordKey(e);
+    var box = h('div', { class: 'entry card' });
+    box.append(h('p', { class: 'hw' }, headword(e), SPEAK && SPEAK.supported() ? ' ' : null,
+      SPEAK && SPEAK.supported() ? h('button', { class: 'say', type: 'button', text: '🔊', 'aria-label': 'Přečíst', onclick: function () { SPEAK.say(headword(e)); } }) : null));
+    if (e._guess) box.append(h('p', { class: 'note', text: 'Přesný tvar ve slovníku není – tohle je nejpravděpodobnější základní tvar.' }));
+    box.append(h('p', { class: 'gram', text: gramLine(e) }));
+    var cs = uniq((e.cs || []).map(function (c) { return c[1]; }));
+    if (cs.length) {
+      box.append(h('p', { class: 'cs', text: cs.join(', ') }));
+      if (e.gl && e.gl.length) box.append(h('details', {}, h('summary', { text: 'Význam německy' }),
+        h('ol', {}, e.gl.map(function (g) { return h('li', {}, deText(g[1]), g[2] ? h('span', { class: 'note', text: ' (' + g[2] + ')' }) : null); }))));
+    } else {
+      box.append(h('p', { class: 'note', text: 'Český překlad ve slovníku chybí, proto vysvětlení:' }));
+      var en = uniq((e.en || []).map(function (c) { return c[1]; }));
+      if (en.length) box.append(h('p', {}, h('span', { class: 'lbl', text: 'Anglicky' }), h('b', { text: en.join(', ') })));
+      if (e.gl && e.gl.length) box.append(h('div', {}, h('span', { class: 'lbl', text: 'Význam (německy)' }),
+        h('ol', {}, e.gl.map(function (g) { return h('li', {}, deText(g[1]), g[2] ? h('span', { class: 'note', text: ' (' + g[2] + ')' }) : null); }))));
+      var aiOut = h('div');
+      box.append(h('div', { class: 'actions' }, h('button', { class: 'btn ghost', type: 'button', text: 'Vysvětlit česky (AI)', onclick: function (ev) {
+        if (!aiCfg) { aiOut.replaceChildren(h('p', { class: 'tips', text: 'Český výklad od Claude: vlož API klíč v Nastavení → Oprava textů pomocí AI.' })); return; }
+        var b = ev.currentTarget; b.disabled = true; aiOut.replaceChildren(h('p', { class: 'meta', text: 'Ptám se Claude…' }));
+        claude('Jsi slovník němčiny pro Čecha (A2–B1). Odpovídej česky, stručně.', 'Německé slovo: ' + headword(e) + ' (' + gramLine(e) + '). Významy z Wiktionary: ' +
+          (e.gl || []).map(function (g) { return g[0] + ') ' + g[1]; }).join(' ') + (en.length ? ' Anglicky: ' + en.join(', ') : '') +
+          '\nDej český překlad (nejčastější významy), krátké vysvětlení a dvě jednoduché německé věty s českým překladem.',
+          { type: 'object', additionalProperties: false, required: ['cz', 'note', 'examples'], properties: { cz: { type: 'string' }, note: { type: 'string' },
+            examples: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['de', 'cz'], properties: { de: { type: 'string' }, cz: { type: 'string' } } } } } })
+          .then(function (r) {
+            e.cs = [['', r.cz]];
+            aiOut.replaceChildren(h('div', { class: 'ai' }, h('p', { class: 'cs', text: r.cz }), h('p', { class: 'txt', text: r.note }),
+              h('ul', { class: 'exs' }, (r.examples || []).map(function (x) { return h('li', {}, h('span', { class: 'de', text: x.de }), h('span', { class: 'cz', text: ' – ' + x.cz })); }))));
+          }, function (err) { b.disabled = false; aiOut.replaceChildren(h('p', { class: 'err', text: aiErr(err) })); });
+      } })), aiOut);
+    }
+    if (e.ex) box.append(h('p', { class: 'ex' }, h('span', { class: 'lbl', text: 'Příklad' }), deText(e.ex)));
+    var add = h('button', { class: myWord(key) ? 'btn ghost' : 'btn', type: 'button', text: myWord(key) ? '✓ V mých slovíčkách – odebrat' : '+ Přidat do mých slovíček' });
+    add.addEventListener('click', function () {
+      if (myWord(key)) { removeWord(key); add.textContent = '+ Přidat do mých slovíček'; add.className = 'btn'; }
+      else { addWord(e); add.textContent = '✓ V mých slovíčkách – odebrat'; add.className = 'btn ghost'; }
+    });
+    box.append(h('div', { class: 'actions' }, add));
+    return box;
+  }
+  function renderDict() {
+    var app = h('div', { class: 'app' });
+    var input = h('input', { type: 'search', value: dictQ, placeholder: 'Hledej německy nebo česky…', 'aria-label': 'Hledat ve slovníku',
+      autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false', enterkeyhint: 'search' });
+    var results = h('div', { style: 'display:grid;gap:12px', 'aria-live': 'polite' });
+    var head = h('div', { class: 'ov-head' }, input, h('button', { class: 'back', type: 'button', text: 'Zavřít', onclick: closeDict }));
+    var nMine = myWordList().length;
+    var tabs = h('div', { class: 'dtabs' },
+      h('button', { class: 'wtab', type: 'button', 'aria-pressed': dictTab === 'search' ? 'true' : 'false', text: 'Hledat', onclick: function () { dictTab = 'search'; renderDict(); } }),
+      h('button', { class: 'wtab', id: 'mine-tab', type: 'button', 'aria-pressed': dictTab === 'mine' ? 'true' : 'false', text: 'Moje slovíčka (' + nMine + ')', onclick: function () { dictTab = 'mine'; renderDict(); } }));
+    app.append(head, tabs, results);
+    ovEl.replaceChildren(app);
+    if (dictTab === 'mine') { input.hidden = true; mineList(results); return; }
+    input.addEventListener('input', function () { dictQ = input.value; clearTimeout(dictTimer); dictTimer = setTimeout(function () { runSearch(results); }, 220); });
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { clearTimeout(dictTimer); runSearch(results); input.blur(); } });
+    runSearch(results);
+    if (!dictQ) { try { input.focus(); } catch (e) { /* ignore */ } }
+  }
+  function dictFooter() {
+    var info = DICT.info && DICT.info();
+    var msg = h('p', { class: 'sub' });
+    var dl = h('button', { class: 'btn ghost', type: 'button', text: 'Stáhnout celý slovník pro offline (asi 23 MB)', onclick: function () {
+      dl.disabled = true;
+      DICT.downloadAll(function (d, n) { msg.textContent = 'Stahuju… ' + Math.round(100 * d / n) + ' %'; })
+        .then(function () { msg.textContent = 'Hotovo – celý slovník funguje i bez internetu.'; try { localStorage.setItem('de-dict-full', info ? info.ver : '1'); } catch (e) { /* ignore */ } },
+          function () { dl.disabled = false; msg.textContent = 'Stahování se nepovedlo. Jsi online?'; });
+    } });
+    var full = false; try { full = info && localStorage.getItem('de-dict-full') === info.ver; } catch (e) { /* ignore */ }
+    return h('div', { class: 'card', style: 'gap:8px' },
+      h('p', { class: 'sub', text: (info ? info.total.toLocaleString('cs-CZ') + ' německých hesel. ' : '') + 'Běžná slova fungují offline vždy, vzácná se dotahují při hledání' + (full ? ' – celý slovník je stažený.' : '.') }),
+      full ? null : dl, msg,
+      h('p', { class: 'sub' }, 'Data: německý Wiktionary přes ', h('a', { href: 'https://kaikki.org/dewiktionary/', target: '_blank', rel: 'noopener', text: 'kaikki.org' }),
+        ' (CC BY-SA 4.0), četnost slov: FrequencyWords (H. Dave).'));
+  }
+  function runSearch(results) {
+    var q = dictQ.trim(), seq = ++dictSeq;
+    if (!q) {
+      results.replaceChildren(h('p', { class: 'sub', text: DICT.ready() ? 'Napiš německé slovo (i tvar jako „ging“ nebo „Häuser“) nebo české slovo.' : 'Načítám slovník…' }));
+      DICT.load().then(function () { if (seq === dictSeq) { results.replaceChildren(h('p', { class: 'sub', text: 'Napiš německé slovo (i tvar jako „ging“ nebo „Häuser“) nebo české slovo.' }), dictFooter()); } },
+        function () { if (seq === dictSeq) results.replaceChildren(h('p', { class: 'err', text: 'Slovník se nepodařilo načíst. Poprvé je potřeba internet (stahuje se asi 4 MB), pak funguje offline.' })); });
+      return;
+    }
+    results.replaceChildren(h('p', { class: 'meta', text: 'Hledám…' }));
+    DICT.search(q).then(function (r) {
+      if (seq !== dictSeq) return;
+      var kids = [];
+      if (r.cz && r.exact.length) kids.push(h('p', { class: 'sub', text: 'Česky „' + q + '“ – německy:' }));
+      r.exact.slice(0, 4).forEach(function (e) { kids.push(entryEl(e)); });
+      if (!r.exact.length) kids.push(h('p', { class: 'sub', text: 'Nic přesného jsem nenašel.' }));
+      var more = r.more.filter(function (e) { return r.exact.indexOf(e) < 0; }).slice(0, 25);
+      if (more.length) {
+        kids.push(h('h2', { text: r.exact.length ? 'Další slova' : 'Podobná slova' }));
+        kids.push(h('ul', { class: 'reslist' }, more.map(function (e) {
+          return h('li', {}, h('button', { class: 'row', type: 'button', onclick: function () { dictQ = e.w; renderDict(); } },
+            h('span', {}, headword(e), h('small', { text: czOf(e, 3) || uniq((e.en || []).map(function (c) { return c[1]; })).slice(0, 2).join(', ') || (e.gl && e.gl[0] ? e.gl[0][1] : '') })),
+            h('span', { class: 'go', text: '›' })));
+        })));
+      }
+      kids.push(dictFooter());
+      results.replaceChildren.apply(results, kids);
+    }, function () {
+      if (seq === dictSeq) results.replaceChildren(h('p', { class: 'err', text: 'Slovník se nepodařilo načíst. Poprvé je potřeba internet, pak funguje offline.' }));
+    });
+  }
+  function mineList(results) {
+    var list = myWordList().sort(function (a, b) { return num(b.a) - num(a.a); });
+    var t = today();
+    var kids = [];
+    if (!list.length) kids.push(h('p', { class: 'sub', text: 'Zatím tu nic není. Slovo přidáš ve slovníku tlačítkem „Přidat do mých slovíček“ nebo klepnutím na německé slovo v cvičení.' }));
+    else kids.push(h('div', { class: 'actions' }, h('button', { class: 'btn primary', type: 'button', text: 'Procvičit slovíčka', onclick: function () { closeDict(); startSession('__words', 15, null); } })));
+    kids.push(h('ul', { class: 'reslist' }, list.map(function (w) {
+      var due = !w.s || w.s[1] <= t;
+      var li = h('li', {}, h('div', { class: 'row', style: 'cursor:default' },
+        h('span', {}, w.w + (w.pl ? ', die ' + w.pl : ''), h('small', { text: (w.cs || w.def || '') + ' · ' + (due ? 'na řadě dnes' : 'další opakování za ' + (w.s[1] - t) + ' d') })),
+        h('button', { class: 'mini', type: 'button', text: 'Odebrat', onclick: function () { removeWord(w.key); li.remove(); } })));
+      return li;
+    })));
+    results.replaceChildren.apply(results, kids);
+  }
+
   var settingsOpen = false, settingsMsg = null;
+
+  /* ---------- theme ---------- */
+  var ACCENTS = [['', '#F2B705', 'žlutá'], ['blue', '#3B82F6', 'modrá'], ['green', '#22A06B', 'zelená'], ['pink', '#E4577F', 'růžová'], ['violet', '#8B5CF6', 'fialová'], ['orange', '#F07B22', 'oranžová']];
+  function themeCfg() { try { return JSON.parse(localStorage.getItem('de-theme-v1') || '{}') || {}; } catch (e) { return {}; } }
+  function applyTheme(t) {
+    var root = document.documentElement;
+    if (t.mode === 'light' || t.mode === 'dark') root.setAttribute('data-theme', t.mode); else root.removeAttribute('data-theme');
+    if (t.accent) root.setAttribute('data-accent', t.accent); else root.removeAttribute('data-accent');
+    try { localStorage.setItem('de-theme-v1', JSON.stringify(t)); } catch (e) { /* ignore */ }
+    // browser / status bar colour follows the chosen mode
+    document.querySelectorAll('meta[name=theme-color]').forEach(function (m) {
+      var dark = /dark/.test(m.getAttribute('media') || '');
+      m.setAttribute('content', t.mode === 'dark' ? '#0E151C' : t.mode === 'light' ? '#EEF1F4' : dark ? '#0E151C' : '#EEF1F4');
+    });
+  }
+  function themeBlock() {
+    var t = themeCfg();
+    var box = h('div', { style: 'display:grid;gap:10px;margin-top:12px' }, h('h2', { text: 'Vzhled' }));
+    box.append(h('div', { class: 'dtabs', role: 'group', 'aria-label': 'Režim' }, [['', 'Podle systému'], ['light', 'Světlý'], ['dark', 'Tmavý']].map(function (m) {
+      return h('button', { class: 'wtab', type: 'button', 'aria-pressed': (t.mode || '') === m[0] ? 'true' : 'false', text: m[1],
+        onclick: function () { t.mode = m[0]; applyTheme(t); render(); } });
+    })));
+    box.append(h('p', { class: 'sub', text: 'Barva zvýraznění' }), h('div', { class: 'swatches', role: 'group', 'aria-label': 'Barva zvýraznění' }, ACCENTS.map(function (a) {
+      return h('button', { class: 'swatch', type: 'button', style: 'background:' + a[1], 'aria-label': a[2], 'aria-pressed': (t.accent || '') === a[0] ? 'true' : 'false',
+        onclick: function () { t.accent = a[0]; applyTheme(t); render(); } });
+    })));
+    return box;
+  }
+
+  function aiBlock() {
+    var box = h('div', { style: 'display:grid;gap:8px;margin-top:16px' }, h('h2', { text: 'Oprava textů pomocí AI (nepovinné)' }));
+    if (aiCfg) {
+      box.append(h('p', { class: 'sub', text: 'Zapnuto. U chybných vět a u psaní můžeš klepnout na „Vysvětlit (AI)“ / „Opravit (AI)“. Používá tvůj klíč a tvůj kredit (asi 1–3 Kč za opravu textu).' }),
+        h('div', { class: 'actions' }, h('button', { class: 'btn ghost', type: 'button', text: 'Odebrat klíč', onclick: function () {
+          aiCfg = null; try { localStorage.removeItem(AI_KEY); } catch (e) { /* ignore */ } render();
+        } })));
+      return box;
+    }
+    var inp = h('input', { class: 'ta', type: 'password', autocomplete: 'off', spellcheck: 'false', placeholder: 'sk-ant-…', 'aria-label': 'Claude API klíč', style: 'min-height:0' });
+    box.append(h('p', { class: 'sub' }, 'Aplikace sama vysvětluje typické chyby i bez internetu. Pro volné psaní a neobvyklé věty můžeš připojit Claude: vlož API klíč z ',
+      h('a', { href: 'https://console.anthropic.com/settings/keys', target: '_blank', rel: 'noopener', text: 'console.anthropic.com' }),
+      '. Klíč zůstává jen v tomhle prohlížeči a nesynchronizuje se.'), inp,
+      h('div', { class: 'actions' }, h('button', { class: 'btn ghost', type: 'button', text: 'Uložit klíč', onclick: function () {
+        var k = inp.value.trim(); if (!k) { inp.focus(); return; }
+        aiCfg = { key: k }; try { localStorage.setItem(AI_KEY, JSON.stringify(aiCfg)); } catch (e) { /* ignore */ } render();
+      } })));
+    return box;
+  }
+  function voiceBlock() {
+    var box = h('div', { style: 'display:grid;gap:8px;margin-top:16px' }, h('h2', { text: 'Hlas pro poslech' }));
+    if (!SPEAK || !SPEAK.supported()) { box.append(h('p', { class: 'sub', text: 'Tenhle prohlížeč neumí číst nahlas.' })); return box; }
+    var vs = SPEAK.voices();
+    if (!vs.length) { box.append(h('p', { class: 'sub', text: 'Zařízení nemá německý hlas. iPhone: Nastavení → Přístupnost → Mluvený obsah → Hlasy → Němčina. Android: Nastavení → Převod textu na řeč → Jazyk.' })); return box; }
+    var sel = h('select', { class: 'ta', style: 'min-height:0', 'aria-label': 'Německý hlas' }, vs.map(function (v) { return h('option', { value: v.voiceURI, text: v.name + ' (' + v.lang + ')' }); }));
+    var cur = null; try { cur = localStorage.getItem('de-voice-v1'); } catch (e) { /* ignore */ }
+    if (cur) sel.value = cur;
+    sel.addEventListener('change', function () { SPEAK.setVoice(sel.value); });
+    box.append(sel, h('div', { class: 'actions' }, h('button', { class: 'btn ghost', type: 'button', text: 'Vyzkoušet', onclick: function () { SPEAK.say('Guten Tag! Wie geht es Ihnen heute?'); } })));
+    return box;
+  }
 
   function syncBlock() {
     var box = h('div', { style: 'display:grid;gap:8px;margin-top:12px' }, h('h2', { text: 'Synchronizace mezi zařízeními' }));
@@ -1645,8 +2749,14 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
 
   indexBank();
   pruneProg();
+  if (BANK) { initSrs(); initSkills(); }
+  applyTheme(themeCfg());
   phase = BANK ? 'hub' : 'empty';
   backEl.addEventListener('click', goHub);
+  var dictBtn = document.getElementById('dictbtn');
+  if (DICT) dictBtn.addEventListener('click', function () { openDict(''); }); else dictBtn.hidden = true;
+  // warm up the dictionary (cached after the first download) once the app is idle
+  if (DICT) (window.requestIdleCallback || function (f) { setTimeout(f, 2500); })(function () { DICT.load().catch(function () {}); });
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) syncOnHide(); else syncSoon(0);
   });

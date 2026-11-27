@@ -29,13 +29,43 @@ při spuštění, po každém bloku a při zavření aplikace. Token zůstává 
 **Exportovat / Importovat postup** v tomtéž místě funguje i bez tokenu – stáhne JSON zálohu a umí ji
 zase načíst a sloučit.
 
+## Co aplikace umí
+
+- **Kurz na 7 týdnů (49 dní)**: týden 1 = pády, předložky, minulé časy; týdny 2–7 = slovosled a spojky, vedlejší věty
+  a Konjunktiv II, vztažné věty a zájmena, stupňování a pasivum, struktury B1, závěrečné opakování. Každá lekce má výklad,
+  cvičení, slovíčka a poslech; 6. den týdne je opakování, 7. den test s delšími větami, C-testem a psaním.
+- **Typy úkolů**: doplňování, výběr, skládání slov do věty, překlad celých (i dlouhých) vět z češtiny, diktát,
+  poslech s otázkami (čte hlas zařízení), C-test, čtení, psaní s kontrolou zadání a vzorovým textem.
+- **Vysvětlení chyb** (`site/js/diagnose.js`): pozná špatný pád členu, koncovku přídavného jména, slabý tvar silného
+  slovesa, ge- u příčestí, předložku podle češtiny, množné číslo, rod, přehlásku, překlep i sloveso na špatném místě.
+  Volitelně podrobné vysvětlení od Claude s vlastním API klíčem (Nastavení → Oprava textů pomocí AI).
+- **Opakování v rozestupech**: každý úkol se vrací po 1, 2, 4, 8, 16, 35, 70 dnech; „Dnešní opakování“ na přehledu.
+- **Slovník** (tlačítko Slovník nebo klepnutí na slovo): 168 000 německých hesel z Wiktionary, hledání i podle tvaru
+  (ging → gehen) a česky (pes → der Hund). Bez českého překladu ukáže anglický překlad a německý výklad.
+  Slova jde přidat do **Mých slovíček**, která se procvičují s opakováním.
+- **Karta postavy**: 13 dovedností s úrovní, XP, úspěšností a slabým místem; odhad úrovně A2–B1.
+- **Vzhled**: světlý / tmavý / podle systému a barva zvýraznění (Nastavení → Vzhled).
+
 ## Přegenerování bank.js
 
 ```sh
 node tools/gen_dekl.js && node tools/build.js     # nebo: npm run bank
 ```
 
-`build.js` zapisuje rovnou do `site/bank.js`. Pak změnu commitni a pushni.
+`build.js` zapisuje rovnou do `site/bank.js`; obsah týdnů 2–7 je v `tools/course/w*.js` (pomocné funkce v
+`tools/course/lib.js`, poslech v `tools/course/listen.js`) a do banky ho přidává `tools/build_course.js`.
+`build_dict.js` pak sestaví slovník do `site/dict/<hash>/` (jen když existuje `tools/dict_src/`, jinak nechá stávající).
+
+Zdroj slovníku (3,2 GB, není v gitu):
+
+```sh
+mkdir -p tools/dict_src
+curl -L https://kaikki.org/dewiktionary/Deutsch/kaikki.org-dictionary-Deutsch.jsonl -o tools/dict_src/de.jsonl
+curl -L https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/de/de_50k.txt -o tools/dict_src/de_50k.txt
+npm run dict:extract && npm run bank
+```
+
+Slovníková data se cachují zvlášť (`du-dict-v1`) a přežijí aktualizace aplikace; precachuje se jen `dict/version.json`.
 
 Další jednorázové skripty: `npm run icons` (PNG ikony z `assets/*.svg`), `npm run fonts`
 (stáhne fonty do `site/fonts/`).

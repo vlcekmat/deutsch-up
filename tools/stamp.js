@@ -22,7 +22,8 @@ const SKIP = new Set(['sw.js', '.DS_Store', '.nojekyll']);
 function walk(d, rel = '') {
   return fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {
     const r = rel ? rel + '/' + e.name : e.name;
-    if (e.isDirectory()) return walk(path.join(d, e.name), r);
+    // dictionary data lives in its own long-lived cache (see sw.js); only dict/version.json is precached
+    if (e.isDirectory()) return /^dict\/[^/]+$/.test(r) ? [] : walk(path.join(d, e.name), r);
     return SKIP.has(e.name) ? [] : [r];
   });
 }

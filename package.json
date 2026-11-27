@@ -3,12 +3,13 @@
   "private": true,
   "description": "Deutsch Up – cvičebnice němčiny A2 → B1 jako offline PWA",
   "scripts": {
-    "bank": "node tools/gen_dekl.js && node tools/build.js",
+    "bank": "node tools/gen_dekl.js && node tools/build.js && node tools/build_dict.js",
     "fonts": "node tools/fetch_fonts.js",
     "icons": "node tools/render_icons.js",
     "stamp": "node tools/stamp.js site",
     "serve": "node tools/stamp.js site --out build/site && node tools/serve.js build/site 4173 /deutsch-up/",
-    "test": "playwright test"
+    "test": "playwright test",
+    "dict:extract": "node tools/dict_extract.js tools/dict_src/de.jsonl tools/dict_src"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1"

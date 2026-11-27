@@ -1,0 +1,78 @@
+// Listening: comprehension texts (spoken by the device's German voice, text hidden until answered)
+// and dictations built from course sentences in tools/build_course.js.
+'use strict';
+const { choice, set } = require('./lib');
+
+// Lines starting with "A:" / "B:" are dialogue turns (spoken with two different voices / pitches).
+const TEXTS = [
+  { id: 'hoer-1', week: 2, title: 'Am Telefon: Termin beim Friseur', level: 1,
+    audio: 'A: Friseursalon Haarmonie, guten Tag.\nB: Guten Tag, ich hätte gern einen Termin zum Haareschneiden.\nA: Gern. Passt Ihnen Mittwoch um zehn?\nB: Leider nicht, da arbeite ich. Geht es auch am Donnerstag?\nA: Am Donnerstag ist alles voll. Aber Freitag um halb fünf ist noch frei.\nB: Perfekt, das nehme ich.\nA: Wie ist Ihr Name, bitte?\nB: Dvořák. D-V-O-R-A-K.\nA: Danke, Herr Dvořák. Bis Freitag!',
+    tr: 'A: Kadeřnictví Haarmonie, dobrý den.\nB: Dobrý den, chtěl bych se objednat na stříhání.\nA: Rádi. Vyhovuje Vám středa v deset?\nB: Bohužel ne, to pracuju. Šlo by to i ve čtvrtek?\nA: Ve čtvrtek je všechno plné. Ale pátek v půl páté je ještě volný.\nB: Výborně, to beru.\nA: Jak se jmenujete, prosím?\nB: Dvořák. D-V-O-R-A-K.\nA: Děkuji, pane Dvořáku. Na shledanou v pátek!',
+    qs: [
+      ['Wann hat Herr Dvořák den Termin?', ['Am Mittwoch um zehn', 'Am Donnerstag', 'Am Freitag um halb fünf'], 2, 'Kdy má pan Dvořák termín?', 'Středa nejde (pracuje), čtvrtek je plný – zbyl pátek v půl páté (16:30).', ['Ve středu v deset', 'Ve čtvrtek', 'V pátek v půl páté']],
+      ['Warum geht Mittwoch nicht?', ['Der Salon ist geschlossen.', 'Er muss arbeiten.', 'Er ist krank.'], 1, 'Proč nejde středa?', '„Leider nicht, da arbeite ich.“', ['Salon je zavřený.', 'Musí pracovat.', 'Je nemocný.']],
+      ['„halb fünf“ bedeutet …', ['4:30', '5:30', '5:00'], 0, '„halb fünf“ znamená …', 'halb fünf = půl páté = 4:30 (půl hodiny DO pěti). Klasická past pro Čechy i Angličany.', ['4:30', '5:30', '5:00']]
+    ] },
+  { id: 'hoer-2', week: 2, title: 'Durchsage im Zug', level: 1,
+    audio: 'Sehr geehrte Fahrgäste, in wenigen Minuten erreichen wir Linz Hauptbahnhof. Wegen einer Störung hat unser Zug heute etwa fünfzehn Minuten Verspätung. Reisende nach Salzburg erreichen ihren Anschlusszug nicht. Bitte nehmen Sie den nächsten Zug um 14 Uhr 20 von Gleis 6. Ihre Fahrkarte bleibt gültig. Das Bordrestaurant ist ab sofort geschlossen. Wir danken für Ihr Verständnis.',
+    tr: 'Vážení cestující, za několik minut přijedeme do Linz Hauptbahnhof. Kvůli poruše má náš vlak dnes asi patnáct minut zpoždění. Cestující do Salcburku nestihnou svůj přípoj. Použijte prosím další vlak ve 14:20 z koleje 6. Vaše jízdenka zůstává platná. Jídelní vůz je od teď zavřený. Děkujeme za pochopení.',
+    qs: [
+      ['Wie viel Verspätung hat der Zug?', ['5 Minuten', '15 Minuten', '50 Minuten'], 1, 'Jaké zpoždění má vlak?', 'fünfzehn = 15. Pozor na fünf (5) × fünfzehn (15) × fünfzig (50).', ['5 minut', '15 minut', '50 minut']],
+      ['Was sollen Reisende nach Salzburg tun?', ['Eine neue Fahrkarte kaufen', 'Den Zug um 14:20 von Gleis 6 nehmen', 'Im Bordrestaurant warten'], 1, 'Co mají udělat cestující do Salcburku?', '„Bitte nehmen Sie den nächsten Zug um 14 Uhr 20 von Gleis 6. Ihre Fahrkarte bleibt gültig.“', ['Koupit novou jízdenku', 'Jet vlakem ve 14:20 z koleje 6', 'Počkat v jídelním voze']],
+      ['Was ist mit dem Bordrestaurant?', ['Es ist geöffnet.', 'Es ist geschlossen.', 'Es öffnet in Linz.'], 1, 'Co je s jídelním vozem?', '„ab sofort geschlossen“ = od teď zavřený.', ['Je otevřený.', 'Je zavřený.', 'Otevře v Linci.']]
+    ] },
+  { id: 'hoer-3', week: 3, title: 'Gespräch: Neue Wohnung', level: 2,
+    audio: 'A: Und, hast du schon eine Wohnung gefunden?\nB: Ja, endlich! Sie ist zwar nicht im Zentrum, aber mit der Straßenbahn bin ich in zwanzig Minuten im Büro.\nA: Und wie groß ist sie?\nB: Zwei Zimmer, Küche, Bad und ein kleiner Balkon. Die Miete ist ein bisschen höher als bei meiner alten Wohnung, aber dafür ist sie viel heller.\nA: Wann ziehst du um?\nB: Eigentlich wollte ich schon nächste Woche umziehen, aber der Vermieter muss noch die Küche reparieren lassen. Deshalb wird es wohl erst Anfang März.\nA: Brauchst du Hilfe beim Umzug?\nB: Das wäre super! Kannst du am Samstag?',
+    tr: 'A: Tak co, už jsi našel byt?\nB: Ano, konečně! Není sice v centru, ale tramvají jsem za dvacet minut v kanceláři.\nA: A jak je velký?\nB: Dva pokoje, kuchyň, koupelna a malý balkon. Nájem je o něco vyšší než u mého starého bytu, ale zato je mnohem světlejší.\nA: Kdy se stěhuješ?\nB: Vlastně jsem se chtěl stěhovat už příští týden, ale pronajímatel musí ještě nechat opravit kuchyň. Proto to bude asi až začátkem března.\nA: Potřebuješ pomoct se stěhováním?\nB: To by bylo super! Můžeš v sobotu?',
+    qs: [
+      ['Wo liegt die neue Wohnung?', ['Im Zentrum', 'Nicht im Zentrum, aber gut erreichbar', 'Direkt neben dem Büro'], 1, 'Kde leží nový byt?', '„zwar nicht im Zentrum, aber mit der Straßenbahn … in zwanzig Minuten im Büro“.', ['V centru', 'Ne v centru, ale dobře dostupný', 'Hned vedle kanceláře']],
+      ['Was ist besser als in der alten Wohnung?', ['Die Miete', 'Sie ist heller.', 'Sie ist größer.'], 1, 'Co je lepší než ve starém bytě?', 'Nájem je vyšší (horší); zato je byt „viel heller“.', ['Nájem', 'Je světlejší.', 'Je větší.']],
+      ['Warum zieht er erst im März um?', ['Er hat keine Zeit.', 'Die Küche muss repariert werden.', 'Die alte Wohnung ist noch nicht gekündigt.'], 1, 'Proč se stěhuje až v březnu?', '„der Vermieter muss noch die Küche reparieren lassen“.', ['Nemá čas.', 'Musí se opravit kuchyň.', 'Starý byt ještě není vypovězený.']]
+    ] },
+  { id: 'hoer-4', week: 3, title: 'Anrufbeantworter: Arztpraxis', level: 2,
+    audio: 'Guten Tag, hier ist die Praxis Doktor Hofmann. Leider rufen Sie außerhalb unserer Sprechzeiten an. Unsere Praxis ist montags bis freitags von acht bis zwölf Uhr geöffnet, am Dienstag und Donnerstag zusätzlich von fünfzehn bis achtzehn Uhr. Vom zweiten bis zum sechzehnten August haben wir Urlaub. In dieser Zeit vertritt uns Frau Doktor Lang in der Bahnhofstraße 12. In dringenden Fällen wählen Sie bitte die 112. Wenn Sie ein Rezept bestellen möchten, sprechen Sie bitte nach dem Signalton Ihren Namen und Ihr Geburtsdatum.',
+    tr: 'Dobrý den, tady ordinace doktora Hofmanna. Bohužel voláte mimo naše ordinační hodiny. Naše ordinace je otevřená od pondělí do pátku od osmi do dvanácti, v úterý a ve čtvrtek navíc od patnácti do osmnácti. Od 2. do 16. srpna máme dovolenou. V této době nás zastupuje paní doktorka Langová v Bahnhofstraße 12. V naléhavých případech volejte prosím 112. Pokud si chcete objednat recept, řekněte prosím po signálu své jméno a datum narození.',
+    qs: [
+      ['Wann ist die Praxis nachmittags geöffnet?', ['Jeden Tag', 'Dienstag und Donnerstag', 'Montag und Freitag'], 1, 'Kdy je ordinace otevřená odpoledne?', '„am Dienstag und Donnerstag zusätzlich von fünfzehn bis achtzehn Uhr“.', ['Každý den', 'V úterý a ve čtvrtek', 'V pondělí a v pátek']],
+      ['Wohin geht man im August?', ['Zu Doktor Hofmann', 'Zu Frau Doktor Lang', 'Ins Krankenhaus'], 1, 'Kam se jde v srpnu?', 'Hofmann má dovolenou; zastupuje „Frau Doktor Lang in der Bahnhofstraße 12“.', ['K doktoru Hofmannovi', 'K paní doktorce Langové', 'Do nemocnice']],
+      ['Was soll man für ein Rezept sagen?', ['Name und Telefonnummer', 'Name und Geburtsdatum', 'Name und Adresse'], 1, 'Co má člověk říct kvůli receptu?', '„Ihren Namen und Ihr Geburtsdatum“.', ['Jméno a telefon', 'Jméno a datum narození', 'Jméno a adresu']]
+    ] },
+  { id: 'hoer-5', week: 4, title: 'Radio: Veranstaltungstipps', level: 2,
+    audio: 'Und hier unsere Tipps fürs Wochenende. Am Samstag findet auf dem Marktplatz das Stadtfest statt, das dieses Jahr schon zum zwanzigsten Mal gefeiert wird. Für Kinder gibt es ein Programm mit Zauberer und Kinderschminken, der Eintritt ist frei. Am Abend spielt die Band, deren Konzert letztes Jahr wegen Regen abgesagt werden musste. Wer lieber in die Natur geht, dem empfehlen wir die geführte Wanderung am Sonntag. Treffpunkt ist um neun Uhr am Bahnhof. Bitte melden Sie sich vorher im Touristenbüro an, denn es gibt nur dreißig Plätze.',
+    tr: 'A tady jsou naše tipy na víkend. V sobotu se na náměstí koná městská slavnost, která se letos slaví už podvacáté. Pro děti je připraven program s kouzelníkem a malováním na obličej, vstup je zdarma. Večer hraje kapela, jejíž koncert musel být loni kvůli dešti zrušen. Kdo raději jde do přírody, tomu doporučujeme výlet s průvodcem v neděli. Sraz je v devět u nádraží. Přihlaste se prosím předem v turistické kanceláři, protože je jen třicet míst.',
+    qs: [
+      ['Was kostet das Kinderprogramm?', ['Nichts', 'Fünf Euro', 'Zwanzig Euro'], 0, 'Kolik stojí dětský program?', '„der Eintritt ist frei“ = vstup zdarma. Číslo zwanzig se týká ročníku slavnosti.', ['Nic', 'Pět eur', 'Dvacet eur']],
+      ['Was war letztes Jahr mit dem Konzert?', ['Es war sehr voll.', 'Es wurde wegen Regen abgesagt.', 'Es war auf dem Bahnhof.'], 1, 'Co bylo loni s koncertem?', '„deren Konzert letztes Jahr wegen Regen abgesagt werden musste“.', ['Bylo plno.', 'Kvůli dešti se zrušil.', 'Byl na nádraží.']],
+      ['Was muss man für die Wanderung machen?', ['Nichts, einfach kommen', 'Sich im Touristenbüro anmelden', 'Am Samstag um neun kommen'], 1, 'Co je potřeba udělat kvůli výletu?', '„Bitte melden Sie sich vorher im Touristenbüro an“.', ['Nic, prostě přijít', 'Přihlásit se v turistické kanceláři', 'Přijít v sobotu v devět']]
+    ] },
+  { id: 'hoer-6', week: 5, title: 'Gespräch: Beim Arzt', level: 3,
+    audio: 'A: Was fehlt Ihnen denn?\nB: Seit drei Tagen habe ich Halsschmerzen und gestern Abend hatte ich leichtes Fieber.\nA: Husten Sie auch?\nB: Nur ein bisschen, vor allem nachts.\nA: Ich schaue mir mal Ihren Hals an. Ja, der ist ziemlich rot. Es ist wahrscheinlich ein Virus, deshalb helfen Antibiotika nicht. Ich verschreibe Ihnen Tabletten gegen die Schmerzen. Nehmen Sie dreimal täglich eine nach dem Essen.\nB: Muss ich zu Hause bleiben? Ich habe diese Woche eine wichtige Präsentation.\nA: Ich schreibe Sie bis Freitag krank. Wenn es am Montag nicht besser ist, kommen Sie bitte noch einmal.',
+    tr: 'A: Copak vám chybí?\nB: Tři dny mě bolí v krku a včera večer jsem měl lehkou horečku.\nA: Kašlete taky?\nB: Jen trochu, hlavně v noci.\nA: Podívám se vám do krku. Ano, je dost červený. Je to pravděpodobně virus, proto antibiotika nepomůžou. Předepíšu vám tablety proti bolesti. Berte třikrát denně jednu po jídle.\nB: Musím zůstat doma? Tento týden mám důležitou prezentaci.\nA: Napíšu vám neschopenku do pátku. Jestli to v pondělí nebude lepší, přijďte prosím ještě jednou.',
+    qs: [
+      ['Warum bekommt der Patient keine Antibiotika?', ['Er ist allergisch.', 'Es ist wahrscheinlich ein Virus.', 'Er hat kein Fieber.'], 1, 'Proč pacient nedostane antibiotika?', '„Es ist wahrscheinlich ein Virus, deshalb helfen Antibiotika nicht.“', ['Je alergický.', 'Je to asi virus.', 'Nemá horečku.']],
+      ['Wie soll er die Tabletten nehmen?', ['Einmal täglich vor dem Essen', 'Dreimal täglich nach dem Essen', 'Nur nachts'], 1, 'Jak má brát tablety?', '„dreimal täglich eine nach dem Essen“ – pozor na vor × nach.', ['Jednou denně před jídlem', 'Třikrát denně po jídle', 'Jen v noci']],
+      ['Was passiert mit der Präsentation?', ['Er macht sie trotzdem.', 'Er ist bis Freitag krankgeschrieben.', 'Der Arzt sagt nichts dazu.'], 1, 'Co bude s prezentací?', '„Ich schreibe Sie bis Freitag krank.“ – do pátku nesmí do práce.', ['Udělá ji přesto.', 'Má neschopenku do pátku.', 'Lékař k tomu nic neřekne.']]
+    ] },
+  { id: 'hoer-7', week: 6, title: 'Interview: Leben auf dem Land', level: 3,
+    audio: 'A: Frau Weber, Sie sind vor zwei Jahren von München aufs Land gezogen. Warum?\nB: Ehrlich gesagt wegen der Mieten. Für unsere Dreizimmerwohnung haben wir fast die Hälfte unseres Gehalts bezahlt. Jetzt haben wir ein Haus mit Garten, das weniger kostet.\nA: Vermissen Sie die Stadt?\nB: Manchmal schon. Es gibt hier weder ein Kino noch ein Theater, und der letzte Bus fährt um acht. Andererseits kennen wir alle Nachbarn, und die Kinder können allein draußen spielen.\nA: Und Ihre Arbeit?\nB: Ich arbeite drei Tage pro Woche im Homeoffice. Wenn das nicht möglich wäre, wären wir nie umgezogen.',
+    tr: 'A: Paní Weberová, před dvěma lety jste se přestěhovala z Mnichova na venkov. Proč?\nB: Upřímně řečeno kvůli nájmům. Za náš třípokojový byt jsme platili skoro polovinu platu. Teď máme dům se zahradou, který stojí méně.\nA: Chybí vám město?\nB: Občas ano. Není tu ani kino, ani divadlo, a poslední autobus jede v osm. Na druhou stranu známe všechny sousedy a děti si můžou hrát venku samy.\nA: A vaše práce?\nB: Tři dny v týdnu pracuju z domova. Kdyby to nebylo možné, nikdy bychom se nepřestěhovali.',
+    qs: [
+      ['Warum ist Familie Weber umgezogen?', ['Wegen der Arbeit', 'Wegen der hohen Mieten', 'Wegen der Schule'], 1, 'Proč se Weberovi přestěhovali?', '„Ehrlich gesagt wegen der Mieten.“', ['Kvůli práci', 'Kvůli vysokým nájmům', 'Kvůli škole']],
+      ['Was gibt es im Dorf NICHT?', ['Nachbarn', 'Einen Garten', 'Ein Kino'], 2, 'Co ve vesnici NENÍ?', '„weder ein Kino noch ein Theater“.', ['Sousedé', 'Zahrada', 'Kino']],
+      ['Was wäre passiert, wenn sie kein Homeoffice hätte?', ['Sie wären nicht umgezogen.', 'Sie hätte gekündigt.', 'Sie würde jeden Tag pendeln.'], 0, 'Co by se stalo, kdyby neměla home office?', '„Wenn das nicht möglich wäre, wären wir nie umgezogen.“ – Konjunktiv II.', ['Nepřestěhovali by se.', 'Dala by výpověď.', 'Dojížděla by každý den.']]
+    ] },
+  { id: 'hoer-8', week: 7, title: 'Information: Die B1-Prüfung', level: 3,
+    audio: 'Liebe Prüfungsteilnehmer, bitte hören Sie gut zu. Die Prüfung beginnt um neun Uhr mit dem Teil Lesen, der fünfundsechzig Minuten dauert. Danach folgen das Hören und das Schreiben. Zwischen den Teilen gibt es jeweils eine Pause von fünfzehn Minuten. Die mündliche Prüfung findet nicht heute statt, sondern morgen; die genaue Uhrzeit finden Sie auf Ihrem Zettel. Handys müssen ausgeschaltet in der Tasche bleiben. Wörterbücher sind nicht erlaubt. Bitte schreiben Sie nur mit einem Kugelschreiber, nicht mit Bleistift. Viel Erfolg!',
+    tr: 'Milí účastníci zkoušky, poslouchejte prosím pozorně. Zkouška začíná v devět částí Čtení, která trvá šedesát pět minut. Potom následuje Poslech a Psaní. Mezi částmi je vždy přestávka patnáct minut. Ústní zkouška se nekoná dnes, ale zítra; přesný čas najdete na svém lístku. Mobily musí zůstat vypnuté v tašce. Slovníky nejsou povoleny. Pište prosím jen propiskou, ne tužkou. Hodně štěstí!',
+    qs: [
+      ['Wann ist die mündliche Prüfung?', ['Heute nach dem Schreiben', 'Morgen', 'Um neun Uhr'], 1, 'Kdy je ústní zkouška?', '„nicht heute …, sondern morgen“ – rozhoduje část po sondern.', ['Dnes po psaní', 'Zítra', 'V devět']],
+      ['Wie lange dauert der Teil Lesen?', ['15 Minuten', '56 Minuten', '65 Minuten'], 2, 'Jak dlouho trvá Čtení?', 'fünfundsechzig = 65 (pět a šedesát – jednotky se říkají první).', ['15 minut', '56 minut', '65 minut']],
+      ['Was ist erlaubt?', ['Ein Wörterbuch', 'Ein Kugelschreiber', 'Ein Bleistift'], 1, 'Co je povoleno?', '„nur mit einem Kugelschreiber, nicht mit Bleistift“; slovníky nejsou povoleny.', ['Slovník', 'Propiska', 'Tužka']]
+    ] }
+];
+
+const sets = TEXTS.map(t => set({ id: t.id, group: 'poslech', title: 'Poslech: ' + t.title, n: 3, all: true, kindLabel: 'Poslech', tag: 'Poslech',
+  desc: 'Nahrávka se přehraje hlasem zařízení; text uvidíš až po odpovědi.' },
+  t.qs.map(q => choice(q[0], q[1], q[2], q[3], q[4], { optTr: q[5], tag: 'Poslech: porozumění', passage: { title: t.title, text: t.audio, tr: t.tr, audio: true } }))));
+
+module.exports = { TEXTS, sets };

@@ -7,7 +7,7 @@ test.skip(!!process.env.LIVE_URL, 'local-only suite');
 
 test('works fully offline after the first visit', async ({ page, context }) => {
   await page.goto('./');
-  await expect(page.getByRole('heading', { name: 'Týden němčiny' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Kurz němčiny' })).toBeVisible();
   await waitForSW(page);
 
   await context.setOffline(true);
@@ -16,7 +16,7 @@ test('works fully offline after the first visit', async ({ page, context }) => {
   await page.reload();
 
   // Hub renders from cache
-  await expect(page.getByRole('heading', { name: 'Týden němčiny' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Kurz němčiny' })).toBeVisible();
   await expect(page.locator('.brand')).toContainText('Deutsch Up');
 
   // Fonts come from the SW cache and actually load
@@ -161,7 +161,7 @@ test('a new deploy shows the update banner and Obnovit activates it', async ({ p
   try {
     await page.goto('./');
     await waitForSW(page);
-    const oldKeys = await page.evaluate(() => caches.keys());
+    const oldKeys = await page.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith('deutsch-up-')));
     expect(oldKeys).toHaveLength(1);
     await expect(page.locator('#banner')).toBeHidden();
 
@@ -170,8 +170,8 @@ test('a new deploy shows the update banner and Obnovit activates it', async ({ p
     await expect(page.locator('#banner')).toContainText('Je k dispozici nová verze');
 
     await Promise.all([page.waitForEvent('load'), page.locator('#banner').getByRole('button', { name: 'Obnovit' }).click()]);
-    await expect(page.getByRole('heading', { name: 'Týden němčiny' })).toBeVisible();
-    await expect.poll(() => page.evaluate(() => caches.keys())).toEqual(['deutsch-up-nextdeploy']);
+    await expect(page.getByRole('heading', { name: 'Kurz němčiny' })).toBeVisible();
+    await expect.poll(() => page.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith('deutsch-up-')))).toEqual(['deutsch-up-nextdeploy']);
     await expect(page.locator('#banner')).toBeHidden();
   } finally {
     fs.writeFileSync(swFile, original);

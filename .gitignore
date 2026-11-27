@@ -5,3 +5,4 @@ playwright-report/
 tools/dekl.json
 .DS_Store
 *.log
+tools/dict_src/

@@ -22,6 +22,9 @@ const ASSETS = [
 ];
 const PREFIX = 'deutsch-up-';
 const CACHE = PREFIX + VERSION;
+// Dictionary files have a content hash in their path (dict/<hash>/…), so they are cached once and survive app updates.
+const DICT_CACHE = 'du-dict-v1';
+const DICT_RE = /\/dict\/[0-9a-f]{6,}\//;
 
 self.addEventListener('install', (event) => {
   // cache: 'reload' bypasses the HTTP cache so a new version never precaches stale files.
@@ -43,7 +46,24 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
-  if (new URL(req.url).origin !== self.location.origin) return; // e.g. GitHub API for sync
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin) return; // e.g. GitHub API for sync, Claude API
+  if (DICT_RE.test(url.pathname)) {
+    event.respondWith((async () => {
+      const dc = await caches.open(DICT_CACHE);
+      const hit = await dc.match(req);
+      if (hit) return hit;
+      const res = await fetch(req);
+      if (res.ok) {
+        // a new core.json means a new dictionary version: drop files of older versions
+        const ver = url.pathname.match(DICT_RE)[0];
+        if (url.pathname.endsWith('/core.json')) dc.keys().then((ks) => ks.forEach((k) => { if (!new URL(k.url).pathname.includes(ver)) dc.delete(k); }));
+        dc.put(req, res.clone());
+      }
+      return res;
+    })());
+    return;
+  }
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
     const hit = await cache.match(req, { ignoreSearch: true });

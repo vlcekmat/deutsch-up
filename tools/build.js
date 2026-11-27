@@ -212,6 +212,7 @@ fs.writeFileSync('/tmp/missing_gloss.txt', Object.keys(miss).sort().join('\n'));
 fs.writeFileSync('/tmp/missing_tr.txt', missingTr.join('\n'));
 console.log('missing gloss', Object.keys(miss).length, 'missing tr', missingTr.length);
 
+require('./build_course.js')(B);
 B.gloss = gloss;
 B.adj = adj;
 B.version = 2;
