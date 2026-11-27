@@ -126,10 +126,11 @@ test('tapping a word shows its meaning and can add it to my words', async ({ pag
   await loadCustom(page, [{ id: 'c1', kind: 'choice', q: 'Der Hund schläft im Garten.', options: ['a', 'b'], answer: 0, tag: 'x' }]);
   await page.locator('.w', { hasText: 'Garten' }).click();
   await expect(page.locator('.pop')).toContainText('zahrada');
-  await page.locator('.pop').getByRole('button', { name: '+ Do slovíček' }).click();
-  await expect(page.locator('.pop')).toContainText('Ve slovíčkách');
+  // looking a word up during an exercise adds it automatically
+  await expect(page.locator('.pop')).toContainText('Přidáno do slovíček');
   const words = await page.evaluate(() => JSON.parse(localStorage.getItem('de-prog-v1')).words);
   expect(words.Garten.w).toBe('der Garten');
+  expect(words.Garten.src).toBe('tap');
 });
 
 test('character sheet shows skill levels from past results', async ({ page }) => {
@@ -229,4 +230,79 @@ test('my words and the review schedule merge across devices (import)', async ({ 
   expect(live).toEqual(['Baum', 'Hund']); // Katze was removed later on the other device
   expect(p.srs[id]).toEqual([3, 9, 200]); // newer review wins
   expect(p.alt[id]).toEqual(['Heute gehe ich ins Kino!']);
+});
+
+test('vocabulary from exercises lands in my words: past practice and new answers', async ({ page }) => {
+  await page.goto('./');
+  const ids = await page.evaluate(() => {
+    const st = window.BANK.sets.find((s) => s.id === 'vocab-arbeit');
+    const b = st.items.find((i) => i.lemma === 'das Büro' && i.kind === 'fill' && !i.plural);
+    const v = window.BANK.sets.find((s) => s.id === 'vocab-verbs').items.find((i) => i.lemma === 'machen');
+    return [b.id, v.id];
+  });
+  // week-1 history: Büro answered right, machen wrong
+  await page.evaluate(([b, v]) => localStorage.setItem('de-prog-v1', JSON.stringify({ v: 1, updated: 1, reset: 0, seen: { [b]: 1, [v]: 1 }, wrong: { [v]: 5 }, fixed: {},
+    tagList: [], days: {}, done: {}, log: [], recent: [], dev: {}, words: { Tisch: { w: 'der Tisch', a: 5, d: 9 } } })), ids);
+  await page.reload();
+  let p = await page.evaluate(() => JSON.parse(localStorage.getItem('de-prog-v1')));
+  expect(p.words['Büro']).toMatchObject({ w: 'das Büro', cs: 'kancelář', pl: 'Büros', src: 'auto' });
+  expect(p.words.machen).toMatchObject({ w: 'machen', cs: 'dělat' });
+  expect(p.words.machen.s[0]).toBe(0); // the missed word is due again first
+  expect(p.words.Tisch.d).toBe(9); // a word I removed is not added back
+
+  // a new vocabulary task adds its word
+  await page.getByRole('button', { name: /Knihovna|Slovní zásoba/ }).first().isVisible();
+  await page.locator('details.grp', { hasText: 'Slovní zásoba' }).locator('summary').click();
+  await page.getByRole('button', { name: /Volný čas a koníčky/ }).click();
+  await answerCurrent(page, { correct: true });
+  const lemma = await page.locator('#stage .card').evaluate((card) => {
+    const id = card.getAttribute('data-id');
+    for (const s of window.BANK.sets) for (const it of s.items || []) if (it.id === id) return it.lemma;
+  });
+  p = await page.evaluate(() => JSON.parse(localStorage.getItem('de-prog-v1')));
+  const key = lemma.replace(/^(der|die|das) /, '');
+  expect(p.words[key]).toMatchObject({ w: lemma, src: 'auto' });
+
+  // can be switched off
+  await page.locator('#back').click();
+  await page.locator('#dictbtn').click();
+  await page.locator('#overlay').getByRole('button', { name: /Moje slovíčka \(\d+\)/ }).click();
+  await page.locator('#overlay').getByRole('button', { name: 'Zapnuto' }).click();
+  expect(await page.evaluate(() => localStorage.getItem('de-autowords-v1'))).toBe('off');
+});
+
+test('version tag is shown', async ({ page }) => {
+  await page.goto('./');
+  const pkg = require('../package.json');
+  await expect(page.locator('#appver')).toContainText('Deutsch Up ' + pkg.version + ' · build');
+  await expect(page.locator('#brandver')).toHaveText('v' + pkg.version.replace(/\.0$/, ''));
+});
+
+test('voices: female and male voice, test buttons, alternating in exercises', async ({ page }) => {
+  await page.addInitScript(() => {
+    const vs = [{ name: 'Anna', voiceURI: 'anna', lang: 'de-DE', localService: true }, { name: 'Markus', voiceURI: 'markus', lang: 'de-DE', localService: true }];
+    window.__spoken = [];
+    window.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; } };
+    const s = window.speechSynthesis;
+    s.getVoices = () => vs;
+    s.cancel = () => {};
+    s.speak = (u) => { window.__spoken.push([u.text, u.voice && u.voice.name, u.pitch]); setTimeout(() => u.onend && u.onend(), 0); };
+  });
+  await page.goto('./');
+  await page.locator('details#settings summary').click();
+  await expect(page.getByLabel('Ženský hlas', { exact: true })).toHaveValue('anna');
+  await expect(page.getByLabel('Mužský hlas', { exact: true })).toHaveValue('markus');
+  await page.getByRole('button', { name: 'Vyzkoušet mužský hlas' }).click();
+  await page.getByRole('button', { name: 'Vyzkoušet ženský hlas' }).click();
+  let spoken = await page.evaluate(() => window.__spoken);
+  expect(spoken.map((x) => x[1])).toEqual(['Markus', 'Anna']);
+  // dialogues: each speaker its own voice; single sentences: both voices get used
+  const used = await page.evaluate(() => {
+    window.__spoken = [];
+    window.DU_SPEAK.say('A: Hallo!\nB: Guten Tag!');
+    ['Ich fahre nach Wien.', 'Das Wetter ist schön.', 'Wir gehen ins Kino.', 'Er arbeitet viel.', 'Sie wohnt in Prag.', 'Morgen regnet es.'].forEach((t) => window.DU_SPEAK.say(t));
+    return window.__spoken;
+  });
+  expect(new Set([used[0][1], used[1][1]]).size).toBe(2);
+  expect(new Set(used.slice(2).map((x) => x[1])).size).toBe(2);
 });

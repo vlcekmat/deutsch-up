@@ -106,6 +106,40 @@ module.exports = function addCourse(B) {
   B.plan.forEach(d => d.blocks.forEach(b => { if (!special.has(b.set) && !existing.has(b.set)) throw new Error('day ' + d.day + ' references unknown set ' + b.set); }));
   B.sets.forEach(s => (s.refs || []).forEach(r => { if (!existing.has(r)) throw new Error(s.id + ' refs unknown ' + r); }));
 
+  // vocabulary items know their word (lemma + Czech), so the app can put encountered words into "Moje slovíčka".
+  // Week-1 items only have it inside the explanation text.
+  let parsed = 0, unparsed = [];
+  B.sets.filter(s => s.group === 'slov' && !s.refs).forEach(s => s.items.forEach(it => {
+    if (it.lemma && it.cz) return;
+    const ex = String(it.explain || '').split('\n')[0];
+    let m = ex.match(/((?:der|die|das) [A-ZÄÖÜ][\wäöüß-]*)(?:, die ([\wäöüß-]+))?\s*(?:=\s*([^.\n]+)|\(([^)]+)\))/);
+    if (m) { it.lemma = m[1]; if (m[2]) it.pl = m[2]; it.cz = (m[3] || m[4]).trim(); it.wp = 'noun'; parsed++; return; }
+    m = ex.match(/^([a-zäöüß ]+?) – [^=]+ = ([^.]+)\./);
+    if (m) { it.lemma = m[1].trim(); it.cz = m[2].trim(); it.wp = 'verb'; parsed++; return; }
+    m = ex.match(/Ustálené spojení se učí jako celek: (.+?) = (.+?)\.$/);
+    if (m) { it.lemma = m[2].trim(); it.cz = m[1].trim(); it.wp = 'phrase'; parsed++; return; }
+    m = ex.match(/\. ([a-zäöüß]+) = ([^.]+)\.$/);
+    if (m) { it.lemma = m[1]; it.cz = m[2].trim(); it.wp = 'adj'; parsed++; return; }
+    unparsed.push(s.id + ': ' + ex);
+  }));
+  // second pass: verb-form drills (gehen – ging – gegangen) and un- antonyms take the meaning from other items
+  const czOf = {};
+  B.sets.filter(s => s.group === 'slov').forEach(s => (s.items || []).forEach(it => { if (it.lemma && it.cz && !czOf[it.lemma]) czOf[it.lemma] = it.cz; }));
+  unparsed = [];
+  B.sets.filter(s => s.group === 'slov' && !s.refs).forEach(s => s.items.forEach(it => {
+    if (it.lemma && it.cz) return;
+    const ex = String(it.explain || '').split('\n')[0];
+    let m = ex.match(/([a-zäöüß]+) – [a-zäöüß ]+ – [a-zäöüß]+\.$/);
+    if (m && czOf[m[1]]) { it.lemma = m[1]; it.cz = czOf[m[1]]; it.wp = 'verb'; return; }
+    m = ex.match(/\. ([a-zäöüß]+), [a-zäöüß]+ = ([^.]+)\.$/);
+    if (m) { it.lemma = m[1]; it.cz = m[2].trim(); it.wp = 'adj'; return; }
+    m = ex.match(/un- = opak: (un[a-zäöüß]+)\.$/);
+    const cue = String(it.prompt || '').match(/\(([^)]+)\)/);
+    if (m && cue) { it.lemma = m[1]; it.cz = 'ne' + cue[1]; it.wp = 'adj'; return; }
+    unparsed.push(s.id + ': ' + ex);
+  }));
+  if (unparsed.length) console.warn('vocab items without a word:', unparsed.length, unparsed.slice(0, 5));
+
   // skills
   const skillOf = {};
   Object.keys(SKILL_SETS).forEach(k => SKILL_SETS[k].forEach(id => { skillOf[id] = k; }));

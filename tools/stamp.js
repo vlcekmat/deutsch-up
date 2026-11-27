@@ -18,6 +18,12 @@ if (oi >= 0) {
   dir = out;
 }
 
+// version.json: the app version (package.json), the build (commit) and the build time; shown in the app
+const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+let build = (process.env.GITHUB_SHA || '').slice(0, 7);
+if (!build) { try { build = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch (e) { build = ''; } }
+fs.writeFileSync(path.join(dir, 'version.json'), JSON.stringify({ version: pkg.version, build, date: new Date().toISOString() }) + '\n');
+
 const SKIP = new Set(['sw.js', '.DS_Store', '.nojekyll']);
 function walk(d, rel = '') {
   return fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => {

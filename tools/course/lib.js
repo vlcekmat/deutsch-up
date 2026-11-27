@@ -131,20 +131,20 @@ function vocab(meta, lines) {
     if (w.type === 'noun') {
       items.push({ id: 'v' + hash(meta.id + w.head), kind: 'fill', prompt: w.cz + ' → ___ (člen + slovo)', answer: [w.article + ' ' + w.word],
         hint: 'Začíná na „' + w.word[0] + '“, ' + { der: 'mužský', die: 'ženský', das: 'střední' }[w.article] + ' rod',
-        short: w.head + '.', explain: w.article + ' ' + w.word + (w.pl ? ', die ' + w.pl : '') + ' = ' + w.cz + '.\nPodstatné jméno se učí vždy se členem a s množným číslem.', tag, lemma: w.article + ' ' + w.word });
+        short: w.head + '.', explain: w.article + ' ' + w.word + (w.pl ? ', die ' + w.pl : '') + ' = ' + w.cz + '.\nPodstatné jméno se učí vždy se členem a s množným číslem.', tag, lemma: w.article + ' ' + w.word, cz: w.cz, pl: w.pl || undefined, wp: 'noun' });
       if (w.pl && w.pl !== w.word) {
         items.push({ id: 'v' + hash(meta.id + w.head + 'pl'), kind: 'fill', prompt: w.article + ' ' + w.word + ' → množné číslo: die ___', answer: [w.pl],
-          short: 'die ' + w.pl + '.', explain: w.article + ' ' + w.word + ', die ' + w.pl + ' (' + w.cz + ').', tag, lemma: w.article + ' ' + w.word, plural: true });
+          short: 'die ' + w.pl + '.', explain: w.article + ' ' + w.word + ', die ' + w.pl + ' (' + w.cz + ').', tag, lemma: w.article + ' ' + w.word, plural: true, cz: w.cz, pl: w.pl, wp: 'noun' });
       }
     } else {
       items.push({ id: 'v' + hash(meta.id + w.head), kind: 'fill', prompt: w.cz + ' → ___' + (w.type === 'verb' ? ' (infinitiv)' : ''), answer: [w.word].concat(w.alt || []),
-        hint: 'Začíná na „' + w.word[0] + '“', short: w.head + '.', explain: w.head + ' = ' + w.cz + '.', tag, lemma: w.word });
+        hint: 'Začíná na „' + w.word[0] + '“', short: w.head + '.', explain: w.head + ' = ' + w.cz + '.', tag, lemma: w.word, cz: w.cz, wp: w.type });
     }
     // meaning check with distractors from the same list
     const others = shuffle(words.filter(x => x !== w)).slice(0, 3).map(x => x.cz);
     const optsArr = shuffle([w.cz].concat(others));
     items.push({ id: 'v' + hash(meta.id + w.head + 'mc'), kind: 'choice', q: 'Co znamená „' + w.head.replace(/ \(.*\)$/, '') + '“?', options: optsArr, answer: optsArr.indexOf(w.cz),
-      short: w.head + ' = ' + w.cz + '.', explain: w.head + ' = ' + w.cz + '.', tag, lemma: w.type === 'noun' ? w.article + ' ' + w.word : w.word });
+      short: w.head + ' = ' + w.cz + '.', explain: w.head + ' = ' + w.cz + '.', tag, lemma: w.type === 'noun' ? w.article + ' ' + w.word : w.word, cz: w.cz, pl: w.pl || undefined, wp: w.type });
   });
   return { set: { id: meta.id, group: 'slov', title: meta.title, desc: meta.desc || 'Slova k tématu ' + meta.topic + '.', n: meta.n || 12, all: false, kindLabel: '', items }, words };
 }

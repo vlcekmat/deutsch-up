@@ -412,7 +412,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
 <body>
 <div class="app">
   <header class="top">
-    <div class="brand">Deutsch Up<small>A2 → B1</small></div>
+    <div class="brand">Deutsch Up<small>A2 → B1</small><small id="brandver"></small></div>
     <div class="right"><div class="mode" id="mode" hidden></div><button class="back" id="dictbtn" type="button" aria-label="Slovník">Slovník</button><button class="back" id="back" type="button" hidden>‹ Přehled</button></div>
   </header>
   <div class="progress" id="progress" hidden></div>
@@ -563,7 +563,11 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
       if (!e) { if (!el.getAttribute('data-g')) txt.textContent = word + ' – ve slovníku není'; placePop(el); return; }
       if (!el.getAttribute('data-g')) txt.textContent = shortDef(e);
       var key = wordKey(e);
-      var b = h('button', { type: 'button', text: myWord(key) ? '✓ Ve slovíčkách' : '+ Do slovíček' });
+      // looking a word up during an exercise = an encountered word
+      if (phase === 'item' && autoWords() && !prog.words[key] && /^(noun|verb|adj|adv)$/.test(e.p) && !e._guess) {
+        addWord(e); prog.words[key].src = 'tap'; saveLocal();
+      }
+      var b = h('button', { type: 'button', text: myWord(key) ? (prog.words[key].src === 'tap' ? '✓ Přidáno do slovíček' : '✓ Ve slovíčkách') : '+ Do slovíček' });
       b.addEventListener('click', function (ev) { ev.stopPropagation(); if (!myWord(key)) { addWord(e); b.textContent = '✓ Ve slovíčkách'; } });
       act.append(b);
       placePop(el);
@@ -1836,6 +1840,46 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     };
     touch(); syncSoon(2000); mineCount();
   }
+  /* encountered vocabulary goes into "Moje slovíčka" automatically (can be switched off) */
+  var AUTO_KEY = 'de-autowords-v1';
+  function autoWords() { try { return localStorage.getItem(AUTO_KEY) !== 'off'; } catch (e) { return true; } }
+  function setAutoWords(on) { try { localStorage.setItem(AUTO_KEY, on ? 'on' : 'off'); } catch (e) { /* ignore */ } if (on) backfillWords(); }
+  function wordFromItem(it) {
+    var art = (String(it.lemma).match(/^(der|die|das) /) || [])[1];
+    return { w: it.lemma, p: art ? 'noun' : (it.wp || ''), g: art ? { der: 'm', die: 'f', das: 'n' }[art] : '', pl: it.pl || '', cs: it.cz, def: '' };
+  }
+  // a vocabulary task was answered: add its word, or count it as a review of a word that is due
+  function autoFromItem(it, ok) {
+    if (!it.lemma || !it.cz) return;
+    var key = lemmaKey(it.lemma), cur = prog.words[key], now = Date.now();
+    if (cur) {
+      if (myWord(key) && (!cur.s || cur.s[1] <= today())) cur.s = srsNext(cur.s, ok);
+      return; // removed words stay removed
+    }
+    if (!autoWords()) return;
+    var w = wordFromItem(it);
+    w.a = now; w.d = 0; w.src = 'auto';
+    w.s = ok ? [2, today() + INTERVALS[2], now] : [0, today() + 1, now];
+    prog.words[key] = w;
+  }
+  // words from vocabulary tasks practised before this existed; the schedule follows how well each went
+  function backfillWords() {
+    if (!autoWords() || !BANK) return;
+    var add = {}, t = today();
+    Object.keys(prog.seen).forEach(function (id) {
+      var x = itemIndex[id], it = x && x.it;
+      if (!it || it._g !== 'slov' || !it.lemma || !it.cz) return;
+      var key = lemmaKey(it.lemma);
+      if (prog.words[key]) return;
+      var r = prog.srs[id] || [1, t + 1];
+      var cur = add[key];
+      if (!cur || r[0] < cur.s[0]) { var w = wordFromItem(it); w.a = 1; w.d = 0; w.src = 'auto'; w.s = [r[0], Math.max(r[1], t), 1]; add[key] = w; }
+    });
+    var keys = Object.keys(add);
+    keys.forEach(function (k) { prog.words[k] = add[k]; });
+    if (keys.length) saveLocal();
+  }
+
   function removeWord(key) { if (prog.words[key]) { prog.words[key].d = Date.now(); touch(); syncSoon(2000); } mineCount(); }
   function mineCount() { var t = document.getElementById('mine-tab'); if (t) t.textContent = 'Moje slovíčka (' + myWordList().length + ')'; }
   function wordsDue() { var t = today(); return myWordList().filter(function (w) { return !w.s || w.s[1] <= t; }); }
@@ -1873,6 +1917,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     if (ok) { if (prog.wrong[it.id]) { delete prog.wrong[it.id]; prog.fixed[it.id] = Date.now(); } }
     else { prog.wrong[it.id] = Date.now(); delete prog.fixed[it.id]; }
     if (parts.length) prog.srs[it.id] = srsNext(prog.srs[it.id], ok);
+    if (it._g === 'slov' && parts.length && !retryMode) autoFromItem(it, ok);
     if (!retryMode) {
       if (parts.length) {
         if (it.kind === 'ctest') bumpSkill(skillOfItem(it), true, parts.filter(function (p) { return p.correct; }).length), bumpSkill(skillOfItem(it), false, parts.filter(function (p) { return !p.correct; }).length);
@@ -2394,6 +2439,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
         h('summary', { text: 'Nastavení: vzhled, synchronizace, hlas, AI' }),
         themeBlock(), syncBlock(), backupBlock(), voiceBlock(), aiBlock(),
         h('div', { class: 'actions', style: 'margin:12px 0' }, resetBtn), manual)));
+    wrap.append(h('p', { class: 'meta', id: 'appver', style: 'text-align:center', text: verText() }));
     return wrap;
   }
 
@@ -2493,14 +2539,16 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     runSearch(results);
     if (!dictQ) { try { input.focus(); } catch (e) { /* ignore */ } }
   }
+  var dlBusy = false, dlText = '';
+  function setDl(t) { dlText = t; var el = document.getElementById('dl-msg'); if (el) el.textContent = t; }
   function dictFooter() {
     var info = DICT.info && DICT.info();
-    var msg = h('p', { class: 'sub' });
-    var dl = h('button', { class: 'btn ghost', type: 'button', text: 'Stáhnout celý slovník pro offline (asi 23 MB)', onclick: function () {
-      dl.disabled = true;
-      DICT.downloadAll(function (d, n) { msg.textContent = 'Stahuju… ' + Math.round(100 * d / n) + ' %'; })
-        .then(function () { msg.textContent = 'Hotovo – celý slovník funguje i bez internetu.'; try { localStorage.setItem('de-dict-full', info ? info.ver : '1'); } catch (e) { /* ignore */ } },
-          function () { dl.disabled = false; msg.textContent = 'Stahování se nepovedlo. Jsi online?'; });
+    var msg = h('p', { class: 'sub', id: 'dl-msg', text: dlText });
+    var dl = h('button', { class: 'btn ghost', type: 'button', disabled: dlBusy, text: 'Stáhnout celý slovník pro offline (asi 23 MB)', onclick: function () {
+      dlBusy = true; dl.disabled = true;
+      DICT.downloadAll(function (d, n) { setDl('Stahuju… ' + Math.round(100 * d / n) + ' %'); })
+        .then(function () { dlBusy = false; setDl('Hotovo – celý slovník funguje i bez internetu.'); try { localStorage.setItem('de-dict-full', info ? info.ver : '1'); } catch (e) { /* ignore */ } },
+          function () { dlBusy = false; dl.disabled = false; setDl('Stahování se nepovedlo. Jsi online?'); });
     } });
     var full = false; try { full = info && localStorage.getItem('de-dict-full') === info.ver; } catch (e) { /* ignore */ }
     return h('div', { class: 'card', style: 'gap:8px' },
@@ -2543,12 +2591,16 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     var list = myWordList().sort(function (a, b) { return num(b.a) - num(a.a); });
     var t = today();
     var kids = [];
+    var on = autoWords();
+    kids.push(h('div', { class: 'row', style: 'cursor:default' },
+      h('span', {}, 'Přidávat slovíčka z cvičení automaticky', h('small', { text: on ? 'Slova z úkolů na slovní zásobu a slova, na která v cvičení klepneš, se přidají sama.' : 'Vypnuto – slova přidáváš jen ručně.' })),
+      h('button', { class: 'mini', type: 'button', 'aria-pressed': on ? 'true' : 'false', text: on ? 'Zapnuto' : 'Vypnuto', onclick: function () { setAutoWords(!on); renderDict(); } })));
     if (!list.length) kids.push(h('p', { class: 'sub', text: 'Zatím tu nic není. Slovo přidáš ve slovníku tlačítkem „Přidat do mých slovíček“ nebo klepnutím na německé slovo v cvičení.' }));
     else kids.push(h('div', { class: 'actions' }, h('button', { class: 'btn primary', type: 'button', text: 'Procvičit slovíčka', onclick: function () { closeDict(); startSession('__words', 15, null); } })));
     kids.push(h('ul', { class: 'reslist' }, list.map(function (w) {
       var due = !w.s || w.s[1] <= t;
       var li = h('li', {}, h('div', { class: 'row', style: 'cursor:default' },
-        h('span', {}, w.w + (w.pl ? ', die ' + w.pl : ''), h('small', { text: (w.cs || w.def || '') + ' · ' + (due ? 'na řadě dnes' : 'další opakování za ' + (w.s[1] - t) + ' d') })),
+        h('span', {}, w.w + (w.pl ? ', die ' + w.pl : ''), h('small', { text: (w.cs || w.def || '') + ' · ' + (due ? 'na řadě dnes' : 'další opakování za ' + (w.s[1] - t) + ' d') + (w.src === 'auto' ? ' · z cvičení' : w.src === 'tap' ? ' · klepnuto v cvičení' : '') })),
         h('button', { class: 'mini', type: 'button', text: 'Odebrat', onclick: function () { removeWord(w.key); li.remove(); } })));
       return li;
     })));
@@ -2556,6 +2608,21 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
   }
 
   var settingsOpen = false, settingsMsg = null;
+
+  /* ---------- version ---------- */
+  var appVer = null;
+  function verText() {
+    if (!appVer) return 'Deutsch Up · vývojová verze';
+    var d = appVer.date ? new Date(appVer.date) : null;
+    return 'Deutsch Up ' + appVer.version + (appVer.build ? ' · build ' + appVer.build : '') + (d ? ' · ' + d.getDate() + '. ' + (d.getMonth() + 1) + '. ' + d.getFullYear() : '');
+  }
+  function loadVersion() {
+    fetch('version.json', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('x'); return r.json(); }).then(function (v) {
+      appVer = v;
+      var el = document.getElementById('appver'); if (el) el.textContent = verText();
+      var b = document.getElementById('brandver'); if (b) b.textContent = 'v' + String(v.version).replace(/\.0$/, '');
+    }).catch(function () {});
+  }
 
   /* ---------- theme ---------- */
   var ACCENTS = [['', '#F2B705', 'žlutá'], ['blue', '#3B82F6', 'modrá'], ['green', '#22A06B', 'zelená'], ['pink', '#E4577F', 'růžová'], ['violet', '#8B5CF6', 'fialová'], ['orange', '#F07B22', 'oranžová']];
@@ -2605,17 +2672,35 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     return box;
   }
   function voiceBlock() {
-    var box = h('div', { style: 'display:grid;gap:8px;margin-top:16px' }, h('h2', { text: 'Hlas pro poslech' }));
+    var box = h('div', { style: 'display:grid;gap:8px;margin-top:16px' }, h('h2', { text: 'Hlasy pro poslech' }));
     if (!SPEAK || !SPEAK.supported()) { box.append(h('p', { class: 'sub', text: 'Tenhle prohlížeč neumí číst nahlas.' })); return box; }
     var vs = SPEAK.voices();
-    if (!vs.length) { box.append(h('p', { class: 'sub', text: 'Zařízení nemá německý hlas. iPhone: Nastavení → Přístupnost → Mluvený obsah → Hlasy → Němčina. Android: Nastavení → Převod textu na řeč → Jazyk.' })); return box; }
-    var sel = h('select', { class: 'ta', style: 'min-height:0', 'aria-label': 'Německý hlas' }, vs.map(function (v) { return h('option', { value: v.voiceURI, text: v.name + ' (' + v.lang + ')' }); }));
-    var cur = null; try { cur = localStorage.getItem('de-voice-v1'); } catch (e) { /* ignore */ }
-    if (cur) sel.value = cur;
-    sel.addEventListener('change', function () { SPEAK.setVoice(sel.value); });
-    box.append(sel, h('div', { class: 'actions' }, h('button', { class: 'btn ghost', type: 'button', text: 'Vyzkoušet', onclick: function () { SPEAK.say('Guten Tag! Wie geht es Ihnen heute?'); } })));
+    if (!vs.length) {
+      box.append(h('p', { class: 'sub', text: 'Zařízení nemá německý hlas (nebo se ještě načítá). iPhone: Nastavení → Zpřístupnění → Mluvený obsah → Hlasy → Němčina – stáhni třeba Anna (ženský) a Markus nebo Yannick (mužský). Android: Nastavení → Převod textu na řeč → Hlasová data pro němčinu.' }));
+      return box;
+    }
+    var cfg = SPEAK.config();
+    function row(g, label, sample) {
+      var p = SPEAK.pick(g);
+      var sel = h('select', { class: 'ta', style: 'min-height:0;flex:1', 'aria-label': label }, vs.map(function (v) {
+        var gg = SPEAK.gender(v);
+        return h('option', { value: v.voiceURI, text: v.name + (gg ? (gg === 'm' ? ' · mužský' : ' · ženský') : '') + ' (' + v.lang + ')' });
+      }));
+      if (p.voice) sel.value = cfg[g] && vs.some(function (v) { return v.voiceURI === cfg[g]; }) ? cfg[g] : p.voice.voiceURI;
+      sel.addEventListener('change', function () { SPEAK.setVoice(g, sel.value); });
+      return h('div', { style: 'display:grid;gap:6px' }, h('span', { class: 'lbl', text: label }),
+        h('div', { class: 'actions', style: 'flex-wrap:nowrap' }, sel,
+          h('button', { class: 'btn ghost', type: 'button', text: 'Vyzkoušet', 'aria-label': 'Vyzkoušet ' + label.toLowerCase(), onclick: function () { SPEAK.say(sample, { voice: g }); } })),
+        g === 'm' && p.fake ? h('p', { class: 'tips', text: 'Mužský německý hlas na zařízení není, proto se použije ženský hlas s nižší výškou. Pro opravdový mužský hlas stáhni na iPhonu v Nastavení → Zpřístupnění → Mluvený obsah → Hlasy → Němčina hlas Markus nebo Yannick (na Androidu v nastavení Převodu textu na řeč).' }) : null);
+    }
+    var mix = SPEAK.mix();
+    box.append(row('f', 'Ženský hlas', 'Hallo, ich bin Anna. Wie geht es dir heute?'), row('m', 'Mužský hlas', 'Guten Tag, ich heiße Markus. Freut mich!'),
+      h('div', { class: 'row', style: 'cursor:default' },
+        h('span', {}, 'Střídat hlasy', h('small', { text: mix ? 'Cvičení čte střídavě ženský a mužský hlas, dialogy mají každou roli jinak.' : 'Cvičení čte jen ženský hlas (dialogy oba).' })),
+        h('button', { class: 'mini', type: 'button', 'aria-pressed': mix ? 'true' : 'false', text: mix ? 'Zapnuto' : 'Vypnuto', onclick: function () { SPEAK.setMix(!mix); render(); } })));
     return box;
   }
+
 
   function syncBlock() {
     var box = h('div', { style: 'display:grid;gap:8px;margin-top:12px' }, h('h2', { text: 'Synchronizace mezi zařízeními' }));
@@ -2749,14 +2834,20 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
 
   indexBank();
   pruneProg();
-  if (BANK) { initSrs(); initSkills(); }
+  if (BANK) { initSrs(); initSkills(); backfillWords(); }
   applyTheme(themeCfg());
+  loadVersion();
+  if (SPEAK && SPEAK.onVoices) SPEAK.onVoices(function () { if (phase === 'hub' && settingsOpen) render(); });
   phase = BANK ? 'hub' : 'empty';
   backEl.addEventListener('click', goHub);
   var dictBtn = document.getElementById('dictbtn');
   if (DICT) dictBtn.addEventListener('click', function () { openDict(''); }); else dictBtn.hidden = true;
   // warm up the dictionary (cached after the first download) once the app is idle
-  if (DICT) (window.requestIdleCallback || function (f) { setTimeout(f, 2500); })(function () { DICT.load().catch(function () {}); });
+  if (DICT) (window.requestIdleCallback || function (f) { setTimeout(f, 2500); })(function () {
+    DICT.load().then(function () { if (navigator.serviceWorker && navigator.serviceWorker.controller) DICT.cacheCore(); }, function () {});
+  });
+  // first install: once the service worker takes over, store the dictionary core for offline use
+  if (DICT && 'serviceWorker' in navigator) navigator.serviceWorker.addEventListener('controllerchange', function () { if (DICT.ready()) DICT.cacheCore(); });
   document.addEventListener('visibilitychange', function () {
     if (document.hidden) syncOnHide(); else syncSoon(0);
   });

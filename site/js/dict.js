@@ -123,8 +123,14 @@
     });
   }
 
+  // Request core.json again through the service worker so it lands in the offline cache.
+  // (On the very first visit the page loads it before the service worker is in control.)
+  function cacheCore() {
+    return load().then(function () { return fetch('dict/' + ver + '/core.json').then(function (r) { return r.blob(); }); }).catch(function () {});
+  }
+
   function downloadAll(onProgress) {
-    return load().then(function () {
+    return cacheCore().then(function () {
       var keys = info.shards.slice(), done = 0;
       function next() {
         var batch = keys.splice(0, 8);
@@ -140,7 +146,7 @@
   }
 
   window.DU_DICT = {
-    load: load, lookup: lookup, search: search, downloadAll: downloadAll,
+    load: load, cacheCore: cacheCore, lookup: lookup, search: search, downloadAll: downloadAll,
     ready: function () { return !!core; },
     info: function () { return info; },
     fold: fold
