@@ -158,6 +158,30 @@ module.exports = function addCourse(B) {
   B.skills = SKILLS;
   B.skillOf = skillOf;
 
+  // CEFR level of each set (what a learner at that level is expected to handle), used for per-skill estimates
+  const LEVEL = {
+    A1: ['art-nom-akk', 'art-dat', 'prep-akk', 'prep-dat', 'prep-contr', 'wo-v2', 'perf-aux', 'past-sein-haben-modal', 'vocab-verbs', 'vocab-ant'],
+    B1: ['art-gen', 'adj-none', 'compose-gen', 'adv-adj', 'prep-gen', 'past-plusq', 'temporal', 'final-konz', 'zu-inf', 'indir-frage', 'konj2', 'konj2-past',
+      'rel-1', 'rel-2', 'n-dekl', 'passiv-1', 'passiv-2', 'futur', 'partizip-adj', 'doppelkonj', 'lassen-modal', 'adj-nomen', 'nvv', 'gen-b1',
+      'prep-verb2', 'prep-verb3', 'da-wo', 'konnektor', 'brief']
+  };
+  const weekOfSet = {};
+  B.plan.forEach(d => d.blocks.forEach(b => { if (!(b.set in weekOfSet)) weekOfSet[b.set] = d.week; }));
+  const levelOf = {};
+  B.sets.forEach(s => {
+    if (s.refs) return;
+    let L = LEVEL.A1.includes(s.id) ? 'A1' : LEVEL.B1.includes(s.id) ? 'B1' : null;
+    if (!L) {
+      const hoer = LISTEN.TEXTS.find(t => t.id === s.id);
+      const wk = hoer ? hoer.week : (s.id.match(/-w(\d)$/) ? +s.id.match(/-w(\d)$/)[1] : weekOfSet[s.id] || 1);
+      if (hoer) L = hoer.level === 1 ? 'A2' : 'B1';
+      else if (/^(vocab|diktat|veta|write|read|ctest)/.test(s.id)) L = wk <= 3 ? 'A2' : 'B1';
+      else L = 'A2';
+    }
+    levelOf[s.id] = L;
+  });
+  B.setLevel = levelOf;
+
   const ids = new Set();
   B.sets.forEach(s => (s.items || []).forEach(it => { if (ids.has(it.id)) throw new Error('duplicate item id ' + it.id + ' in ' + s.id); ids.add(it.id); }));
   const count = k => B.sets.reduce((a, s) => a + (s.items || []).filter(it => it.kind === k).length, 0);

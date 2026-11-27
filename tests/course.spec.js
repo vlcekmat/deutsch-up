@@ -306,3 +306,21 @@ test('voices: female and male voice, test buttons, alternating in exercises', as
   expect(new Set([used[0][1], used[1][1]]).size).toBe(2);
   expect(new Set(used.slice(2).map((x) => x[1])).size).toBe(2);
 });
+
+test('character sheet estimates a CEFR level for each skill', async ({ page }) => {
+  await page.goto('./');
+  // 12 A2 preposition tasks practised, 11 right → A2; plus A1 untouched does not hold it back
+  await page.evaluate(() => {
+    const items = window.BANK.sets.filter((s) => ['prep-wechsel', 'prep-time'].includes(s.id)).flatMap((s) => s.items).slice(0, 12);
+    const seen = {}, wrong = {};
+    items.forEach((it, i) => { seen[it.id] = 1; if (i === 0) wrong[it.id] = 5; });
+    localStorage.setItem('de-prog-v1', JSON.stringify({ v: 1, updated: 1, reset: 0, seen, wrong, fixed: {}, tagList: [], days: {}, done: {}, log: [], recent: [], dev: {} }));
+  });
+  await page.reload();
+  await page.getByRole('button', { name: 'Karta postavy' }).click();
+  const prep = page.locator('.skill', { hasText: 'Předložky' });
+  await expect(prep.locator('.cefr')).toHaveText('A2');
+  await expect(prep.locator('.cefr-line')).toContainText('A2 ✓');
+  await expect(prep.locator('.cefr-line')).toContainText('B2 –');
+  await expect(page.locator('.skill', { hasText: 'Pasivum' }).locator('.cefr')).toHaveCount(0);
+});
