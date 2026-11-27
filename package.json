@@ -1,6 +1,6 @@
 {
   "name": "deutsch-up",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "private": true,
   "description": "Deutsch Up – cvičebnice němčiny A2 → B1 jako offline PWA",
   "scripts": {

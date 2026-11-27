@@ -2742,6 +2742,42 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
       } })));
     return box;
   }
+  // Shows what the phone reports about sound, so a silent phone can be debugged from a screenshot.
+  function soundDiag() {
+    var out = h('div', { style: 'display:grid;gap:8px' });
+    var btn = h('button', { class: 'btn ghost', type: 'button', text: 'Diagnostika zvuku', onclick: function () {
+      btn.disabled = true;
+      var d = SPEAK.diag();
+      var lines = [
+        'verze: ' + (appVer ? appVer.version + ' (' + appVer.build + ')' : '?'),
+        'nahrávky: ' + d.recordings + ' · přehraje m4a: ' + d.canPlayM4a,
+        'aplikace z plochy: ' + (d.standalone ? 'ano' : 'ne') + ' · offline vrstva: ' + (d.sw ? 'ano' : 'ne'),
+        'audio session: ' + d.audioSession + ' · hlas zařízení: ' + (d.speech ? 'ano' : 'ne') + ' (' + d.deviceVoices + ')',
+        'prohlížeč: ' + navigator.userAgent
+      ];
+      var pre = h('pre', { class: 'ta', style: 'white-space:pre-wrap;font:12px/1.4 ui-monospace,Menlo,monospace;min-height:0;margin:0', text: lines.join('\n') });
+      out.replaceChildren(h('p', { class: 'sub', text: 'Teď hraje zkušební nahrávka (Kerstin). Slyšíš ji?' }), pre);
+      SPEAK.say('Hallo, ich bin Anna. Wie geht es dir heute?', { voice: 'f' });
+      // a plain player with native controls: if this one plays, sound works and the app's own player is the problem
+      var url = SPEAK.testClip();
+      if (url) {
+        var native = h('audio', { controls: true, playsinline: true, preload: 'auto', style: 'width:100%' });
+        fetch(url).then(function (r) { return r.blob(); }).then(function (b) { native.src = URL.createObjectURL(b); }, function (e) { native.src = url; });
+        out.append(h('p', { class: 'sub', text: 'Když neslyšíš nic, zkus tlačítko přehrát v tomhle přehrávači:' }), native);
+      }
+      setTimeout(function () {
+        var d2 = SPEAK.diag();
+        pre.textContent = lines.join('\n') + '\npřehrávač: ' + JSON.stringify(d2.player) + '\n--- záznam ---\n' + SPEAK.log().join('\n');
+        btn.disabled = false;
+        out.append(h('div', { class: 'actions' }, h('button', { class: 'btn ghost', type: 'button', text: 'Zkopírovat diagnostiku', onclick: function (e) {
+          var b = e.currentTarget;
+          try { navigator.clipboard.writeText(pre.textContent).then(function () { b.textContent = 'Zkopírováno'; }); } catch (err) { /* ignore */ }
+        } })));
+      }, 3000);
+    } });
+    return h('div', { style: 'display:grid;gap:8px' }, h('div', { class: 'actions' }, btn), out);
+  }
+
   var audioDl = '';
   function voiceBlock() {
     var box = h('div', { style: 'display:grid;gap:8px;margin-top:16px' }, h('h2', { text: 'Hlasy pro poslech' }));
@@ -2760,6 +2796,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
           h('button', { class: 'btn ghost', type: 'button', text: 'Vyzkoušet ženský', onclick: function () { SPEAK.say('Hallo, ich bin Anna. Wie geht es dir heute?', { voice: 'f' }); } }),
           h('button', { class: 'btn ghost', type: 'button', text: 'Vyzkoušet mužský', onclick: function () { SPEAK.say('Guten Tag, ich heiße Markus. Freut mich!', { voice: 'm' }); } }), dl), msg);
     }
+    box.append(soundDiag());
     box.append(h('h3', { text: 'Hlas zařízení (slovník a ostatní texty)' }));
     if (!SPEAK.hasSpeech()) { box.append(h('p', { class: 'sub', text: 'Tenhle prohlížeč neumí číst nahlas – slova ve slovníku zůstanou bez zvuku.' })); return box; }
     var vs = SPEAK.voices();

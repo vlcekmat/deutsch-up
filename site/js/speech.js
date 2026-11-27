@@ -68,23 +68,64 @@
   var clipsReady = fetch('audio/index.json').then(function (r) { return r.ok ? r.json() : null; })
     .then(function (j) { clipInfo = j; clips = {}; (j ? j.clips : []).forEach(function (k) { clips[k] = 1; }); listeners.forEach(function (f) { try { f(); } catch (e) { /* ignore */ } }); })
     .catch(function () { clips = {}; });
-  var player = null, playing = false;
+  // iOS 17+: treat our sound as media playback, so the ringer / silent switch doesn't mute it
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* ignore */ }
+
+  var log = [];
+  function note(t) { log.push(new Date().toISOString().slice(11, 19) + ' ' + t); if (log.length > 40) log.shift(); }
+  // 0.1 s of silence: played inside the tap to unlock the player while the real clip is still loading
+  var SILENT = 'data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==';
+  var blobs = {}; // key -> object URL of the downloaded clip (whole file: no byte-range requests for Safari)
+  function getBlob(k) {
+    if (blobs[k]) return Promise.resolve(blobs[k]);
+    return fetch('audio/' + k + '.m4a').then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.blob();
+    }).then(function (b) {
+      blobs[k] = URL.createObjectURL(b.type === 'audio/mp4' ? b : new Blob([b], { type: 'audio/mp4' }));
+      return blobs[k];
+    });
+  }
+  var player = null, playing = false, token = 0;
+  function makePlayer() {
+    if (player) return player;
+    player = document.createElement('audio');
+    player.setAttribute('playsinline', '');
+    player.preload = 'auto';
+    ['playing', 'ended', 'stalled', 'waiting'].forEach(function (ev) { player.addEventListener(ev, function () { note('audio ' + ev); }); });
+    player.addEventListener('error', function () { var e = player.error; note('audio error ' + (e ? e.code + ' ' + (e.message || '') : '?')); });
+    (document.body || document.documentElement).appendChild(player);
+    return player;
+  }
+  function start(url, rate) {
+    player.src = url;
+    player.defaultPlaybackRate = player.playbackRate = rate / 0.95;
+    if ('preservesPitch' in player) player.preservesPitch = true;
+    var p = player.play();
+    if (p && p.catch) p.catch(function (e) { note('play() refused: ' + e.name + ' ' + e.message); });
+    return p;
+  }
   function playClips(keys, rate, onend) {
-    if (!player) { player = new Audio(); player.preload = 'auto'; }
-    var i = 0;
+    makePlayer();
+    var my = ++token, i = 0, urls = null;
     playing = true;
+    function done(ok) { if (my !== token) return; playing = false; if (onend) onend(ok); }
     function next() {
-      if (!playing) return;
-      if (i >= keys.length) { playing = false; if (onend) onend(true); return; }
-      player.src = 'audio/' + keys[i++] + '.m4a';
-      player.defaultPlaybackRate = player.playbackRate = rate / 0.95;
-      if ('preservesPitch' in player) player.preservesPitch = true;
-      var p = player.play();
-      if (p && p.catch) p.catch(function () { playing = false; if (onend) onend(false); });
+      if (my !== token || !playing) return;
+      if (i >= urls.length) { done(true); return; }
+      player.onended = next;
+      player.onerror = function () { done(false); };
+      var p = start(urls[i++], rate);
+      if (p && p.catch) p.catch(function () { done(false); });
     }
-    player.onended = next;
-    player.onerror = function () { playing = false; if (onend) onend(false); };
-    next();
+    var ready = keys.every(function (k) { return typeof blobs[k] === 'string'; });
+    if (ready) { urls = keys.map(function (k) { return blobs[k]; }); note('play ' + keys.join(',')); next(); return; }
+    // not downloaded yet: unlock the player now (still inside the tap), play when the files arrive
+    player.onended = null; player.onerror = null;
+    start(SILENT, 0.95);
+    note('loading ' + keys.join(','));
+    Promise.all(keys.map(getBlob)).then(function (u) { urls = u; if (my === token) { note('loaded'); next(); } },
+      function (e) { note('download failed: ' + e.message); done(false); });
   }
   // recorded keys for the items, trying the requested voices first and then the other ones
   function recorded(items) {
@@ -97,7 +138,7 @@
   }
 
   function stop() {
-    playing = false;
+    playing = false; token++;
     if (player) { try { player.pause(); } catch (e) { /* ignore */ } }
     if (synth && (synth.speaking || synth.pending)) synth.cancel();
   }
@@ -111,11 +152,14 @@
       u.pitch = it.p.pitch;
       u.rate = it.rate;
       alive.push(u);
-      u.onend = u.onerror = function () {
+      u.onerror = function (e) { note('speech error: ' + (e && e.error)); fin(); };
+      u.onstart = function () { note('speech start'); };
+      u.onend = fin;
+      function fin() {
         alive.splice(alive.indexOf(u), 1);
         left -= 1;
         if (left === 0 && onend) onend(true);
-      };
+      }
       synth.speak(u);
     });
     // Chrome / Safari can sit in a paused state after a cancel or a backgrounded tab
@@ -169,8 +213,21 @@
     ready: function () { return clipsReady; },
     // fetch the clips of these texts so they play offline (the service worker keeps them)
     prefetch: function (texts) {
-      clipsReady.then(function () { texts.forEach(function (t) { (recorded(plan(t, {})) || []).forEach(function (k) { fetch('audio/' + k + '.m4a').catch(function () {}); }); }); });
+      clipsReady.then(function () { texts.forEach(function (t) { (recorded(plan(t, {})) || []).forEach(function (k) { getBlob(k).catch(function () {}); }); }); });
     },
+    log: function () { return log.slice(); },
+    // for the sound diagnostic in Settings
+    diag: function () {
+      return {
+        recordings: clipInfo ? clipInfo.clips.length : (clips ? 0 : 'načítá se'), audioSession: navigator.audioSession ? navigator.audioSession.type : 'nepodporováno',
+        standalone: !!(window.navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches)),
+        sw: !!(navigator.serviceWorker && navigator.serviceWorker.controller), speech: !!synth, deviceVoices: german().map(function (v) { return v.name; }).join(', ') || 'žádné',
+        canPlayM4a: (function () { try { return document.createElement('audio').canPlayType('audio/mp4; codecs="mp4a.40.2"') || 'ne'; } catch (e) { return '?'; } })(),
+        player: player ? { paused: player.paused, readyState: player.readyState, volume: player.volume, muted: player.muted, error: player.error ? player.error.code : null } : null
+      };
+    },
+    testClip: function () { return clipInfo && clipInfo.clips.length ? 'audio/' + clipKey('f', 'Hallo, ich bin Anna. Wie geht es dir heute?') + '.m4a' : null; },
+    blobFor: function (k) { return getBlob(k); },
     downloadAll: function (onProgress) {
       return clipsReady.then(function () {
         var keys = (clipInfo && clipInfo.clips || []).slice(), n = keys.length, done = 0;

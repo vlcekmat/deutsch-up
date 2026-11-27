@@ -166,7 +166,7 @@ test('listening: text stays hidden until answered; dictation is checked', async 
   await page.evaluate(() => window.DU_SPEAK.ready());
   await card.getByRole('button', { name: '▶ Přehrát' }).click();
   // the announcement is pre-recorded
-  expect((await page.evaluate(() => window.__spoken)).join(' ')).toMatch(/clip:.*\/audio\/a\w+\.m4a/);
+  await expect.poll(async () => (await page.evaluate(() => window.__spoken)).join(' ')).toMatch(/clip:blob:/);
   await card.locator('button.opt').first().click();
   await expect(card.locator('.passage')).toContainText('Störung');
   await page.getByRole('button', { name: 'Další' }).click();
@@ -332,7 +332,7 @@ test('character sheet estimates a CEFR level for each skill', async ({ page }) =
 test('listening uses the pre-recorded clips: right voice per speaker, works from the offline cache with ranges', async ({ page, context }) => {
   await page.addInitScript(() => {
     window.__played = [];
-    HTMLMediaElement.prototype.play = function () { window.__played.push(this.src.split('/audio/')[1]); setTimeout(() => this.dispatchEvent(new Event('ended')), 0); return Promise.resolve(); };
+    HTMLMediaElement.prototype.play = function () { if (this.src.startsWith('blob:')) window.__played.push(this.src); setTimeout(() => this.dispatchEvent(new Event('ended')), 0); return Promise.resolve(); };
   });
   await page.goto('./');
   await waitForSW(page);
@@ -348,21 +348,36 @@ test('listening uses the pre-recorded clips: right voice per speaker, works from
     return { n: p.split('\n').length, played: window.__played };
   });
   expect(res.played.length).toBe(res.n);
-  expect(res.played.every((f) => idx.clips.includes(f.replace('.m4a', '')))).toBe(true);
+  // the clips it loaded are real recordings (keys from the player's log)
+  const loaded = (await page.evaluate(() => window.DU_SPEAK.log())).filter((l) => / (loading|play) /.test(l)).pop().split(' ').pop().split(',');
+  expect(loaded).toHaveLength(res.n);
+  expect(loaded.every((k) => idx.clips.includes(k))).toBe(true);
   // the voice test buttons in Settings play the female and the male recording
   await page.locator('details#settings summary').click();
   await page.evaluate(() => { window.__played = []; });
   await page.getByRole('button', { name: 'Vyzkoušet ženský', exact: true }).click();
   await page.getByRole('button', { name: 'Vyzkoušet mužský', exact: true }).click();
-  const played = await page.evaluate(() => window.__played);
-  expect(played).toHaveLength(2);
-  expect(played[0]).not.toBe(played[1]);
+  await expect.poll(() => page.evaluate(() => window.__played.length)).toBe(2);
+  const keys = (await page.evaluate(() => window.DU_SPEAK.log())).filter((l) => / (loading|play) /.test(l)).slice(-2).map((l) => l.split(' ').pop());
+  expect(keys[0]).not.toBe(keys[1]);
   // cached clip, then offline with a Range request (what Safari sends for audio)
-  const clip = 'audio/' + played[0];
+  const clip = 'audio/' + keys[0] + '.m4a';
   await page.evaluate((u) => fetch(u).then((r) => r.blob()), clip);
   await context.setOffline(true);
   const r = await page.evaluate(async (u) => { const x = await fetch(u, { headers: { Range: 'bytes=0-99' } }); return { status: x.status, len: (await x.arrayBuffer()).byteLength, range: x.headers.get('content-range') }; }, clip);
   expect(r.status).toBe(206);
   expect(r.len).toBe(100);
   expect(r.range).toMatch(/^bytes 0-99\/\d+$/);
+});
+
+test('sound diagnostic shows what the phone reports', async ({ page }) => {
+  await page.goto('./');
+  await page.evaluate(() => window.DU_SPEAK.ready());
+  await page.locator('details#settings summary').click();
+  await page.getByRole('button', { name: 'Diagnostika zvuku' }).click();
+  const pre = page.locator('#settings pre');
+  await expect(pre).toContainText('nahrávky: ' );
+  await expect(page.locator('#settings audio[controls]')).toHaveCount(1);
+  await expect(pre).toContainText('--- záznam ---', { timeout: 6000 });
+  await expect(page.getByRole('button', { name: 'Zkopírovat diagnostiku' })).toBeVisible();
 });
