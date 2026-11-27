@@ -1,4 +1,7 @@
-/* Deutsch Up – German text-to-speech with the device's own voices (works offline where the voice is installed).
+/* Deutsch Up – reading German aloud.
+   1) Pre-recorded clips (audio/<key>.m4a, Piper voices Kerstin ♀ and Thorsten ♂, see tools/build_audio.js) for
+      everything in the course: work on every phone, also in silent mode, and offline once cached.
+   2) Otherwise the device's own text-to-speech voices (iOS gives web apps only a few of them).
    DU_SPEAK.say(text, { rate, voice: 'f' | 'm' | 'auto', onend })
      'auto' (default) alternates female / male per text (the same text always gets the same voice);
      lines "A: …" / "B: …" are read as a dialogue with two different voices.
@@ -33,7 +36,10 @@
     var de = voices.filter(function (v) { return /^de([-_]|$)/i.test(v.lang); });
     // prefer Germany, then offline voices, then "enhanced/premium" quality
     function score(v) { return (/de[-_]DE/i.test(v.lang) ? 4 : 0) + (v.localService ? 2 : 0) + (/premium|enhanced|natural|neural/i.test(v.name) ? 1 : 0); }
-    return de.sort(function (a, b) { return score(b) - score(a); });
+    de.sort(function (a, b) { return score(b) - score(a); });
+    // iOS lists some voices twice (same name, different internal id): keep the better one
+    var seen = {};
+    return de.filter(function (v) { var k = v.name + '|' + v.lang; if (seen[k]) return false; seen[k] = 1; return true; });
   }
 
   var LS = 'de-voices-v2';
@@ -53,7 +59,48 @@
   }
   function hash(s) { var x = 0; for (var i = 0; i < s.length; i++) x = (x * 31 + s.charCodeAt(i)) | 0; return Math.abs(x); }
 
-  function stop() { if (synth && (synth.speaking || synth.pending)) synth.cancel(); }
+  /* ---------- pre-recorded clips ---------- */
+  // key = 'a' + FNV-1a(gender + '|' + text) – must match tools/build_audio.js
+  function fnv(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { var c = s.codePointAt(i); if (c > 0xffff) i++; h ^= c; h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); }
+  function clean(t) { return String(t).replace(/\s+/g, ' ').trim(); }
+  function clipKey(g, text) { return 'a' + fnv(g + '|' + clean(text)); }
+  var clips = null, clipInfo = null;
+  var clipsReady = fetch('audio/index.json').then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) { clipInfo = j; clips = {}; (j ? j.clips : []).forEach(function (k) { clips[k] = 1; }); listeners.forEach(function (f) { try { f(); } catch (e) { /* ignore */ } }); })
+    .catch(function () { clips = {}; });
+  var player = null, playing = false;
+  function playClips(keys, rate, onend) {
+    if (!player) { player = new Audio(); player.preload = 'auto'; }
+    var i = 0;
+    playing = true;
+    function next() {
+      if (!playing) return;
+      if (i >= keys.length) { playing = false; if (onend) onend(true); return; }
+      player.src = 'audio/' + keys[i++] + '.m4a';
+      player.defaultPlaybackRate = player.playbackRate = rate / 0.95;
+      if ('preservesPitch' in player) player.preservesPitch = true;
+      var p = player.play();
+      if (p && p.catch) p.catch(function () { playing = false; if (onend) onend(false); });
+    }
+    player.onended = next;
+    player.onerror = function () { playing = false; if (onend) onend(false); };
+    next();
+  }
+  // recorded keys for the items, trying the requested voices first and then the other ones
+  function recorded(items) {
+    if (!clips) return null;
+    var a = items.map(function (it) { return clipKey(it.g, it.text); });
+    if (a.every(function (k) { return clips[k]; })) return a;
+    var b = items.map(function (it) { return clipKey(it.g === 'f' ? 'm' : 'f', it.text); });
+    if (b.every(function (k) { return clips[k]; })) return b;
+    return null;
+  }
+
+  function stop() {
+    playing = false;
+    if (player) { try { player.pause(); } catch (e) { /* ignore */ } }
+    if (synth && (synth.speaking || synth.pending)) synth.cancel();
+  }
 
   function speakQueue(items, onend) {
     var left = items.length;
@@ -75,8 +122,21 @@
     if (synth.paused) synth.resume();
   }
 
+  function plan(text, o) {
+    text = String(text);
+    var lines = text.split(/\n+/).filter(function (l) { return l.trim(); });
+    var dialog = lines.some(function (l) { return /^[AB]:\s/.test(l); });
+    var first = o.voice === 'f' || o.voice === 'm' ? o.voice : (cfg.mix ? (hash(text) % 2 ? 'm' : 'f') : 'f');
+    if (!dialog) return [{ g: first, text: text.replace(/\n+/g, ' ') }];
+    var second = first === 'f' ? 'm' : 'f';
+    return lines.map(function (l) { return { g: /^B:\s/.test(l) ? second : first, text: l.replace(/^[AB]:\s*/, '') }; });
+  }
+  function hasRecording(text) { return !!recorded(plan(text, {})); }
+
   function say(text, o) {
     o = o || {};
+    var rec = o.device ? null : recorded(plan(text, o));
+    if (rec) { stop(); playClips(rec, o.rate || 0.95, o.onend); return true; }
     if (!synth) { if (o.onend) o.onend(false); return false; }
     text = String(text);
     var rate = o.rate || 0.95;
@@ -103,9 +163,28 @@
 
   window.DU_SPEAK = {
     say: say, stop: stop, pick: pick, gender: gender,
-    supported: function () { return !!synth; },
+    supported: function () { return !!synth || !!window.Audio; },
+    hasRecording: hasRecording,
+    recordings: function () { return clipInfo; },
+    ready: function () { return clipsReady; },
+    // fetch the clips of these texts so they play offline (the service worker keeps them)
+    prefetch: function (texts) {
+      clipsReady.then(function () { texts.forEach(function (t) { (recorded(plan(t, {})) || []).forEach(function (k) { fetch('audio/' + k + '.m4a').catch(function () {}); }); }); });
+    },
+    downloadAll: function (onProgress) {
+      return clipsReady.then(function () {
+        var keys = (clipInfo && clipInfo.clips || []).slice(), n = keys.length, done = 0;
+        function batch() {
+          var b = keys.splice(0, 8);
+          if (!b.length) return Promise.resolve();
+          return Promise.all(b.map(function (k) { return fetch('audio/' + k + '.m4a').then(function (r) { return r.blob(); }).catch(function () {}).then(function () { done += 1; if (onProgress) onProgress(done, n); }); })).then(batch);
+        }
+        return batch();
+      });
+    },
     onVoices: function (f) { listeners.push(f); },
     hasGerman: function () { return german().length > 0; },
+    hasSpeech: function () { return !!synth; },
     voices: german,
     config: function () { return Object.assign({}, cfg); },
     setVoice: function (g, uri) { cfg[g] = uri; save(); },

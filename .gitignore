@@ -7,3 +7,4 @@ tools/dekl.json
 *.log
 tools/dict_src/
 site/version.json
+tools/tts/

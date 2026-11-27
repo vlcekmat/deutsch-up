@@ -67,6 +67,21 @@ npm run dict:extract && npm run bank
 
 Slovníková data se cachují zvlášť (`du-dict-v1`) a přežijí aktualizace aplikace; precachuje se jen `dict/version.json`.
 
+### Nahrávky pro poslech
+
+Diktáty, poslechy, vzorové věty a příklady ve výkladu jsou předem nahrané (`site/audio/*.m4a`) hlasy Piper
+**Kerstin** (ženský) a **Thorsten** (mužský), obojí trénované na datech CC0. iPhone totiž webovým aplikacím dává jen
+některé hlasy zařízení. Po změně obsahu kurzu (macOS, kvůli `afconvert`):
+
+```sh
+python3 -m venv tools/tts/venv && tools/tts/venv/bin/pip install piper-tts
+cd tools/tts && for v in kerstin/medium/de_DE-kerstin-medium thorsten/high/de_DE-thorsten-high; do for e in onnx onnx.json; do
+  curl -LO "https://huggingface.co/rhasspy/piper-voices/resolve/main/de/de_DE/$v.$e"; done; done; cd ../..
+npm run bank && node tools/build_audio.js     # nahraje jen nové texty, nepoužité smaže
+```
+
+Nahrávky mají vlastní cache (`du-audio-v1`), precachuje se jen `audio/index.json`.
+
 Další jednorázové skripty: `npm run icons` (PNG ikony z `assets/*.svg`), `npm run fonts`
 (stáhne fonty do `site/fonts/`).
 

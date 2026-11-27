@@ -30,6 +30,7 @@ function walk(d, rel = '') {
     const r = rel ? rel + '/' + e.name : e.name;
     // dictionary data lives in its own long-lived cache (see sw.js); only dict/version.json is precached
     if (e.isDirectory()) return /^dict\/[^/]+$/.test(r) ? [] : walk(path.join(d, e.name), r);
+    if (/^audio\/.+\.m4a$/.test(r)) return []; // recordings: own long-lived cache (sw.js), only audio/index.json is precached
     return SKIP.has(e.name) ? [] : [r];
   });
 }

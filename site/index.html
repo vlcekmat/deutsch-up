@@ -7,7 +7,7 @@
 <meta name="description" content="Cvičebnice němčiny A2 → B1. Funguje i offline.">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#EEF1F4" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0E151C" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#101218" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -49,36 +49,51 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0E151C;
-    --surface: #16212B;
-    --ink: #E7EDF3;
-    --muted: #93A3B2;
-    --line: #2A3947;
-    --mark: #F2C230;
-    --btn: #E7EDF3;
-    --btn-ink: #0E151C;
-    --ok: #5CCB90;
-    --ok-bg: #12301F;
-    --bad: #FF8F86;
-    --bad-bg: #3A1B19;
+    /* soft ink dark: warm off-white text, lifted cards, primary buttons in the accent colour */
+    --bg: #101218;
+    --surface: #191C25;
+    --ink: #ECE8E1;
+    --muted: #9EA3B0;
+    --line: #2B303D;
+    --mark: #F5C451;
+    --btn: var(--mark);
+    --btn-ink: #15171D;
+    --ok: #6BD69B;
+    --ok-bg: #16291F;
+    --bad: #FF8E84;
+    --bad-bg: #351A1C;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0E151C;
-  --surface: #16212B;
-  --ink: #E7EDF3;
-  --muted: #93A3B2;
-  --line: #2A3947;
-  --mark: #F2C230;
-  --btn: #E7EDF3;
-  --btn-ink: #0E151C;
-  --ok: #5CCB90;
-  --ok-bg: #12301F;
-  --bad: #FF8F86;
-  --bad-bg: #3A1B19;
+  --bg: #101218;
+  --surface: #191C25;
+  --ink: #ECE8E1;
+  --muted: #9EA3B0;
+  --line: #2B303D;
+  --mark: #F5C451;
+  --btn: var(--mark);
+  --btn-ink: #15171D;
+  --ok: #6BD69B;
+  --ok-bg: #16291F;
+  --bad: #FF8E84;
+  --bad-bg: #351A1C;
   color-scheme: dark;
 }
+/* dark: depth from light instead of borders, a faint glow behind the page */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body { background: radial-gradient(1200px 600px at 50% -200px, #1A1E2B 0%, var(--bg) 60%) fixed, var(--bg); }
+  :root:not([data-theme="light"]) .card { border-color: #252A36; box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 8px 24px rgba(0,0,0,.25); }
+  :root:not([data-theme="light"]) .btn.ghost, :root:not([data-theme="light"]) .row:not(.done), :root:not([data-theme="light"]) .opt:not(.right):not(.wrong),
+  :root:not([data-theme="light"]) .tab:not([aria-pressed="true"]), :root:not([data-theme="light"]) .wtab:not([aria-pressed="true"]),
+  :root:not([data-theme="light"]) .back, :root:not([data-theme="light"]) .pool .tok { background: #1F232E; }
+  :root:not([data-theme="light"]) .fb.ok h3 { color: var(--ok); }
+}
+:root[data-theme="dark"] body { background: radial-gradient(1200px 600px at 50% -200px, #1A1E2B 0%, var(--bg) 60%) fixed, var(--bg); }
+:root[data-theme="dark"] .card { border-color: #252A36; box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 8px 24px rgba(0,0,0,.25); }
+:root[data-theme="dark"] .btn.ghost, :root[data-theme="dark"] .row:not(.done), :root[data-theme="dark"] .opt:not(.right):not(.wrong),
+:root[data-theme="dark"] .tab:not([aria-pressed="true"]), :root[data-theme="dark"] .wtab:not([aria-pressed="true"]),
+:root[data-theme="dark"] .back, :root[data-theme="dark"] .pool .tok { background: #1F232E; }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -968,7 +983,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     wrap.append(
       h('button', { class: 'btn' + (opts.primary ? '' : ' ghost'), type: 'button', text: '▶ Přehrát', onclick: function () { n += 1; SPEAK.say(text, { rate: 0.95 }); if (opts.onplay) opts.onplay(n); } }),
       h('button', { class: 'btn ghost', type: 'button', text: '🐢 Pomalu', onclick: function () { n += 1; SPEAK.say(text, { rate: 0.7 }); if (opts.onplay) opts.onplay(n); } }));
-    if (!SPEAK.hasGerman()) wrap.append(h('p', { class: 'meta', text: 'Nenašel jsem německý hlas. V nastavení telefonu přidej němčinu do Převodu textu na řeč (iPhone: Přístupnost → Mluvený obsah → Hlasy).' }));
+    if (!SPEAK.hasRecording(text) && !SPEAK.hasGerman()) wrap.append(h('p', { class: 'meta', text: 'Pro tuhle větu není nahrávka a zařízení nemá německý hlas.' }));
     return wrap;
   }
   function buildListen(ctx) {
@@ -2691,7 +2706,7 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     // browser / status bar colour follows the chosen mode
     document.querySelectorAll('meta[name=theme-color]').forEach(function (m) {
       var dark = /dark/.test(m.getAttribute('media') || '');
-      m.setAttribute('content', t.mode === 'dark' ? '#0E151C' : t.mode === 'light' ? '#EEF1F4' : dark ? '#0E151C' : '#EEF1F4');
+      m.setAttribute('content', t.mode === 'dark' ? '#101218' : t.mode === 'light' ? '#EEF1F4' : dark ? '#101218' : '#EEF1F4');
     });
   }
   function themeBlock() {
@@ -2727,12 +2742,29 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
       } })));
     return box;
   }
+  var audioDl = '';
   function voiceBlock() {
     var box = h('div', { style: 'display:grid;gap:8px;margin-top:16px' }, h('h2', { text: 'Hlasy pro poslech' }));
-    if (!SPEAK || !SPEAK.supported()) { box.append(h('p', { class: 'sub', text: 'Tenhle prohlížeč neumí číst nahlas.' })); return box; }
+    if (!SPEAK) return box;
+    var rec = SPEAK.recordings && SPEAK.recordings();
+    if (rec && rec.clips && rec.clips.length) {
+      var msg = h('p', { class: 'sub', id: 'audio-dl', text: audioDl });
+      var dl = h('button', { class: 'btn ghost', type: 'button', text: 'Stáhnout nahrávky pro offline (asi 15 MB)', onclick: function () {
+        dl.disabled = true;
+        SPEAK.downloadAll(function (d, n) { audioDl = 'Stahuju… ' + Math.floor(100 * d / n) + ' %'; var el = document.getElementById('audio-dl'); if (el) el.textContent = audioDl; })
+          .then(function () { audioDl = 'Hotovo – všechny nahrávky fungují i bez internetu.'; var el = document.getElementById('audio-dl'); if (el) el.textContent = audioDl; });
+      } });
+      box.append(h('p', { class: 'sub', text: 'Diktáty, poslechy, vzorové věty a příklady ve výkladu jsou nahrané předem: ženský hlas ' + rec.voices.f + ', mužský ' + rec.voices.m +
+        ' (Piper, data CC0). Hrají na každém telefonu, i v tichém režimu. Nahrávky jedné lekce se stáhnou při jejím spuštění, nebo si stáhni všechny najednou.' }),
+        h('div', { class: 'actions' },
+          h('button', { class: 'btn ghost', type: 'button', text: 'Vyzkoušet ženský', onclick: function () { SPEAK.say('Hallo, ich bin Anna. Wie geht es dir heute?', { voice: 'f' }); } }),
+          h('button', { class: 'btn ghost', type: 'button', text: 'Vyzkoušet mužský', onclick: function () { SPEAK.say('Guten Tag, ich heiße Markus. Freut mich!', { voice: 'm' }); } }), dl), msg);
+    }
+    box.append(h('h3', { text: 'Hlas zařízení (slovník a ostatní texty)' }));
+    if (!SPEAK.hasSpeech()) { box.append(h('p', { class: 'sub', text: 'Tenhle prohlížeč neumí číst nahlas – slova ve slovníku zůstanou bez zvuku.' })); return box; }
     var vs = SPEAK.voices();
     if (!vs.length) {
-      box.append(h('p', { class: 'sub', text: 'Zařízení nemá německý hlas (nebo se ještě načítá). iPhone: Nastavení → Zpřístupnění → Mluvený obsah → Hlasy → Němčina – stáhni třeba Anna (ženský) a Markus nebo Yannick (mužský). Android: Nastavení → Převod textu na řeč → Hlasová data pro němčinu.' }));
+      box.append(h('p', { class: 'sub', text: 'Zařízení webovým aplikacím žádný německý hlas nedává (nebo se ještě načítá). Na iPhonu webové aplikace dostanou jen některé hlasy – stažené prémiové hlasy obvykle ne.' }));
       return box;
     }
     var cfg = SPEAK.config();
@@ -2746,16 +2778,18 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
       sel.addEventListener('change', function () { SPEAK.setVoice(g, sel.value); });
       return h('div', { style: 'display:grid;gap:6px' }, h('span', { class: 'lbl', text: label }),
         h('div', { class: 'actions', style: 'flex-wrap:nowrap' }, sel,
-          h('button', { class: 'btn ghost', type: 'button', text: 'Vyzkoušet', 'aria-label': 'Vyzkoušet ' + label.toLowerCase(), onclick: function () { SPEAK.say(sample, { voice: g }); } })),
-        g === 'm' && p.fake ? h('p', { class: 'tips', text: 'Mužský německý hlas na zařízení není, proto se použije ženský hlas s nižší výškou. Pro opravdový mužský hlas stáhni na iPhonu v Nastavení → Zpřístupnění → Mluvený obsah → Hlasy → Němčina hlas Markus nebo Yannick (na Androidu v nastavení Převodu textu na řeč).' }) : null);
+          h('button', { class: 'btn ghost', type: 'button', text: 'Vyzkoušet', 'aria-label': 'Vyzkoušet ' + label.toLowerCase(), onclick: function () { SPEAK.say(sample, { voice: g, device: true }); } })),
+        g === 'm' && p.fake ? h('p', { class: 'tips', text: 'Mužský hlas zařízení webovým aplikacím nedává, použije se ženský s nižší výškou.' }) : null);
     }
     var mix = SPEAK.mix();
-    box.append(row('f', 'Ženský hlas', 'Hallo, ich bin Anna. Wie geht es dir heute?'), row('m', 'Mužský hlas', 'Guten Tag, ich heiße Markus. Freut mich!'),
+    box.append(row('f', 'Ženský hlas', 'Das ist ein Test. Hörst du mich?'), row('m', 'Mužský hlas', 'Das ist ein Test mit der Männerstimme.'),
+      h('p', { class: 'tips', text: 'Když hlas zařízení mlčí: vypni tichý režim (iPhone ztlumí hlas zařízení, nahrávky ne) a zesil hlasitost médií.' }),
       h('div', { class: 'row', style: 'cursor:default' },
-        h('span', {}, 'Střídat hlasy', h('small', { text: mix ? 'Cvičení čte střídavě ženský a mužský hlas, dialogy mají každou roli jinak.' : 'Cvičení čte jen ženský hlas (dialogy oba).' })),
+        h('span', {}, 'Střídat hlasy', h('small', { text: mix ? 'Věty čte střídavě ženský a mužský hlas, dialogy mají každou roli jinak.' : 'Hlavně ženský hlas (dialogy oba).' })),
         h('button', { class: 'mini', type: 'button', 'aria-pressed': mix ? 'true' : 'false', text: mix ? 'Zapnuto' : 'Vypnuto', onclick: function () { SPEAK.setMix(!mix); render(); } })));
     return box;
   }
+
 
 
   function syncBlock() {
@@ -2837,6 +2871,10 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
     if (!retry) baseEx = o;
     outcomes = []; result = null; savedState = 'none';
     learn = o.items.map(function () { return { tries: 0, streak: 0, need: 1, done: false, missed: false, okGaps: null }; });
+    // fetch this round's recordings now, so they play instantly (and offline later)
+    if (SPEAK && SPEAK.prefetch) SPEAK.prefetch([].concat.apply([], o.items.map(function (it) {
+      return it.kind === 'listen' ? [it.text] : it.passage && it.passage.audio ? [it.passage.text] : (it.kind === 'sentence' || it.kind === 'order') ? [it.answer[0]] : [];
+    })));
     queue = o.items.map(function (_, i) { return i; });
     idx = queue[0];
     phase = (retry || (opts && opts.skip)) ? 'item' : 'intro';
@@ -2894,6 +2932,8 @@ details textarea { margin-top: 10px; min-height: 120px; font: 400 14px/1.4 ui-mo
   applyTheme(themeCfg());
   loadVersion();
   if (SPEAK && SPEAK.onVoices) SPEAK.onVoices(function () { if (phase === 'hub' && settingsOpen) render(); });
+  // the list of recordings arrives just after the first render: show the recording section once it's known
+  if (SPEAK && SPEAK.ready) SPEAK.ready().then(function () { if (phase === 'hub') render(); });
   phase = BANK ? 'hub' : 'empty';
   backEl.addEventListener('click', goHub);
   var dictBtn = document.getElementById('dictbtn');

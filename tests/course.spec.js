@@ -1,6 +1,6 @@
 // Course weeks 2+, mistake explanations, dictionary, my words, character sheet, listening.
 const { test, expect } = require('@playwright/test');
-const { answerCurrent } = require('./helpers');
+const { answerCurrent, waitForSW } = require('./helpers');
 
 test.skip(!!process.env.LIVE_URL, 'local-only suite');
 
@@ -149,6 +149,7 @@ test('listening: text stays hidden until answered; dictation is checked', async 
   await page.addInitScript(() => {
     window.__spoken = [];
     window.speechSynthesis.speak = (u) => { window.__spoken.push(u.text); setTimeout(() => u.onend && u.onend(), 0); };
+    HTMLMediaElement.prototype.play = function () { window.__spoken.push('clip:' + this.src); setTimeout(() => this.dispatchEvent(new Event('ended')), 0); return Promise.resolve(); };
   });
   await page.goto('./');
   await page.evaluate(() => {
@@ -162,8 +163,10 @@ test('listening: text stays hidden until answered; dictation is checked', async 
   const card = page.locator('#stage .card');
   await expect(card).toContainText('Text se ukáže po odpovědi');
   await expect(card).not.toContainText('Störung');
+  await page.evaluate(() => window.DU_SPEAK.ready());
   await card.getByRole('button', { name: '▶ Přehrát' }).click();
-  expect((await page.evaluate(() => window.__spoken)).join(' ')).toContain('Störung');
+  // the announcement is pre-recorded
+  expect((await page.evaluate(() => window.__spoken)).join(' ')).toMatch(/clip:.*\/audio\/a\w+\.m4a/);
   await card.locator('button.opt').first().click();
   await expect(card.locator('.passage')).toContainText('Störung');
   await page.getByRole('button', { name: 'Další' }).click();
@@ -201,9 +204,9 @@ test('theme: dark mode and accent colour are applied and survive a reload', asyn
   await page.getByRole('button', { name: 'zelená' }).click();
   const read = () => page.evaluate(() => [document.documentElement.dataset.theme, document.documentElement.dataset.accent,
     getComputedStyle(document.body).backgroundColor, getComputedStyle(document.documentElement).getPropertyValue('--mark').trim()]);
-  expect(await read()).toEqual(['dark', 'green', 'rgb(14, 21, 28)', '#4CD38E']);
+  expect(await read()).toEqual(['dark', 'green', 'rgb(16, 18, 24)', '#4CD38E']);
   await page.reload();
-  expect(await read()).toEqual(['dark', 'green', 'rgb(14, 21, 28)', '#4CD38E']);
+  expect(await read()).toEqual(['dark', 'green', 'rgb(16, 18, 24)', '#4CD38E']);
   await page.locator('details#settings summary').click();
   await page.getByRole('button', { name: 'Světlý' }).click();
   expect((await read())[2]).toBe('rgb(238, 241, 244)');
@@ -292,6 +295,7 @@ test('voices: female and male voice, test buttons, alternating in exercises', as
   await page.locator('details#settings summary').click();
   await expect(page.getByLabel('Ženský hlas', { exact: true })).toHaveValue('anna');
   await expect(page.getByLabel('Mužský hlas', { exact: true })).toHaveValue('markus');
+  // device voices are tested with the device engine, not the recordings
   await page.getByRole('button', { name: 'Vyzkoušet mužský hlas' }).click();
   await page.getByRole('button', { name: 'Vyzkoušet ženský hlas' }).click();
   let spoken = await page.evaluate(() => window.__spoken);
@@ -299,8 +303,8 @@ test('voices: female and male voice, test buttons, alternating in exercises', as
   // dialogues: each speaker its own voice; single sentences: both voices get used
   const used = await page.evaluate(() => {
     window.__spoken = [];
-    window.DU_SPEAK.say('A: Hallo!\nB: Guten Tag!');
-    ['Ich fahre nach Wien.', 'Das Wetter ist schön.', 'Wir gehen ins Kino.', 'Er arbeitet viel.', 'Sie wohnt in Prag.', 'Morgen regnet es.'].forEach((t) => window.DU_SPEAK.say(t));
+    window.DU_SPEAK.say('A: Hallo!\nB: Guten Tag!', { device: true });
+    ['Ich fahre nach Wien.', 'Das Wetter ist schön.', 'Wir gehen ins Kino.', 'Er arbeitet viel.', 'Sie wohnt in Prag.', 'Morgen regnet es.'].forEach((t) => window.DU_SPEAK.say(t, { device: true }));
     return window.__spoken;
   });
   expect(new Set([used[0][1], used[1][1]]).size).toBe(2);
@@ -323,4 +327,42 @@ test('character sheet estimates a CEFR level for each skill', async ({ page }) =
   await expect(prep.locator('.cefr-line')).toContainText('A2 ✓');
   await expect(prep.locator('.cefr-line')).toContainText('B2 –');
   await expect(page.locator('.skill', { hasText: 'Pasivum' }).locator('.cefr')).toHaveCount(0);
+});
+
+test('listening uses the pre-recorded clips: right voice per speaker, works from the offline cache with ranges', async ({ page, context }) => {
+  await page.addInitScript(() => {
+    window.__played = [];
+    HTMLMediaElement.prototype.play = function () { window.__played.push(this.src.split('/audio/')[1]); setTimeout(() => this.dispatchEvent(new Event('ended')), 0); return Promise.resolve(); };
+  });
+  await page.goto('./');
+  await waitForSW(page);
+  const idx = await page.evaluate(() => fetch('audio/index.json').then((r) => r.json()));
+  expect(idx.voices).toEqual({ f: 'Kerstin', m: 'Thorsten' });
+  expect(idx.clips.length).toBeGreaterThan(500);
+  // a dialogue: two speakers, two different recordings per line, all of them exist
+  const res = await page.evaluate(async () => {
+    await window.DU_SPEAK.ready();
+    const p = window.BANK.sets.find((s) => s.id === 'hoer-1').items[0].passage.text;
+    window.__played = [];
+    await new Promise((r) => window.DU_SPEAK.say(p, { onend: r }));
+    return { n: p.split('\n').length, played: window.__played };
+  });
+  expect(res.played.length).toBe(res.n);
+  expect(res.played.every((f) => idx.clips.includes(f.replace('.m4a', '')))).toBe(true);
+  // the voice test buttons in Settings play the female and the male recording
+  await page.locator('details#settings summary').click();
+  await page.evaluate(() => { window.__played = []; });
+  await page.getByRole('button', { name: 'Vyzkoušet ženský', exact: true }).click();
+  await page.getByRole('button', { name: 'Vyzkoušet mužský', exact: true }).click();
+  const played = await page.evaluate(() => window.__played);
+  expect(played).toHaveLength(2);
+  expect(played[0]).not.toBe(played[1]);
+  // cached clip, then offline with a Range request (what Safari sends for audio)
+  const clip = 'audio/' + played[0];
+  await page.evaluate((u) => fetch(u).then((r) => r.blob()), clip);
+  await context.setOffline(true);
+  const r = await page.evaluate(async (u) => { const x = await fetch(u, { headers: { Range: 'bytes=0-99' } }); return { status: x.status, len: (await x.arrayBuffer()).byteLength, range: x.headers.get('content-range') }; }, clip);
+  expect(r.status).toBe(206);
+  expect(r.len).toBe(100);
+  expect(r.range).toMatch(/^bytes 0-99\/\d+$/);
 });
